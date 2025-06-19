@@ -4,6 +4,8 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'dart:convert';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -188,6 +190,19 @@ class _TemperaturePageState extends State<TemperaturePage> {
   final mqtt = MqttService();
   bool _connecting = false;
   bool _configChecked = false;
+  Map<String, List<double>> deviceHistory = {};
+  Map<String, double> deviceCurrent = {};
+  final List<Color> chartColors = [
+    Colors.blue,
+    Colors.red,
+    Colors.green,
+    Colors.orange,
+    Colors.purple,
+    Colors.brown,
+    Colors.cyan,
+    Colors.pink,
+  ];
+  Stream<List<MqttReceivedMessage<MqttMessage>>>? _mqttStream;
 
   @override
   void initState() {
@@ -208,6 +223,41 @@ class _TemperaturePageState extends State<TemperaturePage> {
       setState(() {
         _connecting = false;
       });
+    }
+    if (_isConfigValid() && mqtt.isConnected) {
+      _subscribeAndListen();
+    }
+  }
+
+  void _subscribeAndListen() {
+    mqtt.client.subscribe(mqtt.topic, MqttQos.atLeastOnce);
+    _mqttStream = mqtt.client.updates;
+    _mqttStream?.listen((List<MqttReceivedMessage<MqttMessage>> c) {
+      final recMess = c[0].payload as MqttPublishMessage;
+      final pt = MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
+      _handleMqttMessage(pt);
+    });
+  }
+
+  void _handleMqttMessage(String payload) {
+    try {
+      final Map<String, dynamic> data = Map<String, dynamic>.from(
+        (payload.isNotEmpty) ? (jsonDecode(payload)) : {},
+      );
+      final Map<String, List<double>> newHistory = {};
+      final Map<String, double> newCurrent = {};
+      data.forEach((dev, v) {
+        if (v is Map<String, dynamic> && v['l_t'] is List && v['c_t'] != null) {
+          newHistory[dev] = (v['l_t'] as List).map((e) => double.tryParse(e.toString()) ?? 0.0).toList();
+          newCurrent[dev] = double.tryParse(v['c_t'].toString()) ?? 0.0;
+        }
+      });
+      setState(() {
+        deviceHistory = newHistory;
+        deviceCurrent = newCurrent;
+      });
+    } catch (e) {
+      // ignore parse error
     }
   }
 
@@ -240,11 +290,71 @@ class _TemperaturePageState extends State<TemperaturePage> {
     return Colors.red;
   }
 
+  Widget _buildChart() {
+    if (deviceHistory.isEmpty) {
+      return const Center(child: Text('暂无温度数据'));
+    }
+    final maxLen = deviceHistory.values.map((l) => l.length).fold<int>(0, (a, b) => a > b ? a : b);
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: LineChart(
+        LineChartData(
+          minY: deviceHistory.values.expand((l) => l).fold<double>(1000, (a, b) => a < b ? a : b),
+          maxY: deviceHistory.values.expand((l) => l).fold<double>(-1000, (a, b) => a > b ? a : b),
+          lineBarsData: deviceHistory.entries.toList().asMap().entries.map((entry) {
+            final idx = entry.key;
+            final dev = entry.value.key;
+            final data = entry.value.value;
+            return LineChartBarData(
+              spots: [for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])],
+              isCurved: true,
+              color: chartColors[idx % chartColors.length],
+              barWidth: 3,
+              dotData: FlDotData(show: false),
+              belowBarData: BarAreaData(show: false),
+              // 可加legend
+            );
+          }).toList(),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          gridData: FlGridData(show: true),
+          borderData: FlBorderData(show: true),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: const Center(
-        child: Text('温度页面'),
+      body: Column(
+        children: [
+          Expanded(child: _buildChart()),
+          if (deviceCurrent.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Wrap(
+                spacing: 16,
+                children: deviceCurrent.entries.toList().asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final dev = entry.value.key;
+                  final temp = entry.value.value;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 16, height: 16, color: chartColors[idx % chartColors.length]),
+                      const SizedBox(width: 4),
+                      Text('$dev: $temp°C'),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: _fabColor(),
