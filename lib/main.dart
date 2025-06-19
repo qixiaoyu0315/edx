@@ -345,7 +345,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
                   getTitlesWidget: (value, meta) => Text(value.toStringAsFixed(0)),
                 ),
               ),
-              bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+              bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
               rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
               topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
@@ -362,27 +362,53 @@ class _TemperaturePageState extends State<TemperaturePage> {
     return Scaffold(
       body: Column(
         children: [
-          Expanded(child: _buildChart()),
           if (deviceCurrent.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Wrap(
-                spacing: 16,
-                children: deviceCurrent.entries.toList().asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final dev = entry.value.key;
-                  final temp = entry.value.value;
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(width: 16, height: 16, color: chartColors[idx % chartColors.length]),
-                      const SizedBox(width: 4),
-                      Text('$dev: $temp°C'),
-                    ],
-                  );
-                }).toList(),
+              child: RotatedBox(
+                quarterTurns: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: deviceCurrent.entries.toList().asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final dev = entry.value.key;
+                    final tempList = deviceHistory[dev] ?? [];
+                    final current = deviceCurrent[dev] ?? 0.0;
+                    final max = tempList.isNotEmpty ? tempList.reduce((a, b) => a > b ? a : b) : 0.0;
+                    final min = tempList.isNotEmpty ? tempList.reduce((a, b) => a < b ? a : b) : 0.0;
+                    final avg = tempList.isNotEmpty ? (tempList.reduce((a, b) => a + b) / tempList.length) : 0.0;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(width: 16, height: 16, color: chartColors[idx % chartColors.length]),
+                            const SizedBox(width: 4),
+                            Text(dev),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(current.toStringAsFixed(1), style: const TextStyle(color: Colors.green)),
+                            const SizedBox(width: 16),
+                            Text(max.toStringAsFixed(1), style: const TextStyle(color: Colors.red)),
+                            const SizedBox(width: 16),
+                            Text(avg.toStringAsFixed(1), style: const TextStyle(color: Colors.yellow)),
+                            const SizedBox(width: 16),
+                            Text(min.toStringAsFixed(1), style: const TextStyle(color: Colors.blue)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    );
+                  }).toList(),
+                ),
               ),
             ),
+          Expanded(child: _buildChart()),
         ],
       ),
       floatingActionButton: FloatingActionButton(
