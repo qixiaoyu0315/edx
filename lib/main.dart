@@ -318,37 +318,40 @@ class _TemperaturePageState extends State<TemperaturePage> {
     final interval = mqtt.yinterval;
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: LineChart(
-        LineChartData(
-          minY: ymin,
-          maxY: ymax,
-          lineBarsData: deviceHistory.entries.toList().asMap().entries.map((entry) {
-            final idx = entry.key;
-            final dev = entry.value.key;
-            final data = entry.value.value;
-            return LineChartBarData(
-              spots: [for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])],
-              isCurved: true,
-              color: chartColors[idx % chartColors.length],
-              barWidth: 3,
-              dotData: FlDotData(show: false),
-              belowBarData: BarAreaData(show: false),
-            );
-          }).toList(),
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                interval: interval,
-                getTitlesWidget: (value, meta) => Text(value.toStringAsFixed(0)),
+      child: RotatedBox(
+        quarterTurns: 1,
+        child: LineChart(
+          LineChartData(
+            minY: ymin,
+            maxY: ymax,
+            lineBarsData: deviceHistory.entries.toList().asMap().entries.map((entry) {
+              final idx = entry.key;
+              final dev = entry.value.key;
+              final data = entry.value.value;
+              return LineChartBarData(
+                spots: [for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])],
+                isCurved: true,
+                color: chartColors[idx % chartColors.length],
+                barWidth: 3,
+                dotData: FlDotData(show: false),
+                belowBarData: BarAreaData(show: false),
+              );
+            }).toList(),
+            titlesData: FlTitlesData(
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: interval,
+                  getTitlesWidget: (value, meta) => Text(value.toStringAsFixed(0)),
+                ),
               ),
+              bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+              rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
-            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
-            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            gridData: FlGridData(show: true),
+            borderData: FlBorderData(show: true),
           ),
-          gridData: FlGridData(show: true),
-          borderData: FlBorderData(show: true),
         ),
       ),
     );
