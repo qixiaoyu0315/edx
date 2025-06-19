@@ -108,7 +108,32 @@ class MqttService {
   double ymax = 50.0;
   double yinterval = 5.0;
 
+  // 新增：缓存温度数据
+  Map<String, List<double>> deviceHistory = {};
+  Map<String, double> deviceCurrent = {};
+
   MqttService._internal();
+
+  // 新增：处理温度数据
+  void updateTemperatureData(String payload) {
+    try {
+      final Map<String, dynamic> data = Map<String, dynamic>.from(
+        (payload.isNotEmpty) ? (jsonDecode(payload)) : {},
+      );
+      final Map<String, List<double>> newHistory = {};
+      final Map<String, double> newCurrent = {};
+      data.forEach((dev, v) {
+        if (v is Map<String, dynamic> && v['l_t'] is List && v['c_t'] != null) {
+          newHistory[dev] = (v['l_t'] as List).map((e) => double.tryParse(e.toString()) ?? 0.0).toList();
+          newCurrent[dev] = double.tryParse(v['c_t'].toString()) ?? 0.0;
+        }
+      });
+      deviceHistory = newHistory;
+      deviceCurrent = newCurrent;
+    } catch (e) {
+      // ignore parse error
+    }
+  }
 
   Future<void> connect() async {
     client = MqttServerClient(host, clientId);
@@ -209,8 +234,6 @@ class _TemperaturePageState extends State<TemperaturePage> {
   final mqtt = MqttService();
   bool _connecting = false;
   bool _configChecked = false;
-  Map<String, List<double>> deviceHistory = {};
-  Map<String, double> deviceCurrent = {};
   final List<Color> chartColors = [
     Colors.blue,
     Colors.red,
@@ -254,30 +277,10 @@ class _TemperaturePageState extends State<TemperaturePage> {
     _mqttStream?.listen((List<MqttReceivedMessage<MqttMessage>> c) {
       final recMess = c[0].payload as MqttPublishMessage;
       final pt = MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
-      _handleMqttMessage(pt);
-    });
-  }
-
-  void _handleMqttMessage(String payload) {
-    try {
-      final Map<String, dynamic> data = Map<String, dynamic>.from(
-        (payload.isNotEmpty) ? (jsonDecode(payload)) : {},
-      );
-      final Map<String, List<double>> newHistory = {};
-      final Map<String, double> newCurrent = {};
-      data.forEach((dev, v) {
-        if (v is Map<String, dynamic> && v['l_t'] is List && v['c_t'] != null) {
-          newHistory[dev] = (v['l_t'] as List).map((e) => double.tryParse(e.toString()) ?? 0.0).toList();
-          newCurrent[dev] = double.tryParse(v['c_t'].toString()) ?? 0.0;
-        }
-      });
       setState(() {
-        deviceHistory = newHistory;
-        deviceCurrent = newCurrent;
+        mqtt.updateTemperatureData(pt);
       });
-    } catch (e) {
-      // ignore parse error
-    }
+    });
   }
 
   bool _isConfigValid() {
@@ -310,7 +313,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
   }
 
   Widget _buildChart() {
-    if (deviceHistory.isEmpty) {
+    if (mqtt.deviceHistory.isEmpty) {
       return const Center(child: Text('暂无温度数据'));
     }
     final ymin = mqtt.ymin;
@@ -324,7 +327,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
           LineChartData(
             minY: ymin,
             maxY: ymax,
-            lineBarsData: deviceHistory.entries.toList().asMap().entries.map((entry) {
+            lineBarsData: mqtt.deviceHistory.entries.toList().asMap().entries.map((entry) {
               final idx = entry.key;
               final dev = entry.value.key;
               final data = entry.value.value;
@@ -363,18 +366,18 @@ class _TemperaturePageState extends State<TemperaturePage> {
       body: SafeArea(
         child: Column(
           children: [
-            if (deviceCurrent.isNotEmpty)
+            if (mqtt.deviceCurrent.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: RotatedBox(
                   quarterTurns: 1,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: deviceCurrent.entries.toList().asMap().entries.map((entry) {
+                    children: mqtt.deviceCurrent.entries.toList().asMap().entries.map((entry) {
                       final idx = entry.key;
                       final dev = entry.value.key;
-                      final tempList = deviceHistory[dev] ?? [];
-                      final current = deviceCurrent[dev] ?? 0.0;
+                      final tempList = mqtt.deviceHistory[dev] ?? [];
+                      final current = mqtt.deviceCurrent[dev] ?? 0.0;
                       final max = tempList.isNotEmpty ? tempList.reduce((a, b) => a > b ? a : b) : 0.0;
                       final min = tempList.isNotEmpty ? tempList.reduce((a, b) => a < b ? a : b) : 0.0;
                       final avg = tempList.isNotEmpty ? (tempList.reduce((a, b) => a + b) / tempList.length) : 0.0;
