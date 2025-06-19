@@ -26,7 +26,7 @@ class MqttConfigStorage {
     final path = join(dbPath, 'mqtt_config.db');
     _db = await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE mqtt_config (
@@ -37,9 +37,19 @@ class MqttConfigStorage {
             username TEXT,
             password TEXT,
             topic TEXT,
-            useSSL INTEGER
+            useSSL INTEGER,
+            ymin REAL,
+            ymax REAL,
+            yinterval REAL
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE mqtt_config ADD COLUMN ymin REAL');
+          await db.execute('ALTER TABLE mqtt_config ADD COLUMN ymax REAL');
+          await db.execute('ALTER TABLE mqtt_config ADD COLUMN yinterval REAL');
+        }
       },
     );
   }
@@ -55,6 +65,9 @@ class MqttConfigStorage {
       'password': mqtt.password,
       'topic': mqtt.topic,
       'useSSL': mqtt.useSSL ? 1 : 0,
+      'ymin': mqtt.ymin,
+      'ymax': mqtt.ymax,
+      'yinterval': mqtt.yinterval,
     });
   }
 
@@ -70,6 +83,9 @@ class MqttConfigStorage {
       mqtt.password = map['password'] as String? ?? '';
       mqtt.topic = map['topic'] as String? ?? '';
       mqtt.useSSL = (map['useSSL'] as int? ?? 0) == 1;
+      mqtt.ymin = (map['ymin'] as num?)?.toDouble() ?? -5.0;
+      mqtt.ymax = (map['ymax'] as num?)?.toDouble() ?? 50.0;
+      mqtt.yinterval = (map['yinterval'] as num?)?.toDouble() ?? 5.0;
     }
   }
 }
@@ -88,6 +104,9 @@ class MqttService {
   String password = '';
   String topic = '';
   bool useSSL = false;
+  double ymin = -5.0;
+  double ymax = 50.0;
+  double yinterval = 5.0;
 
   MqttService._internal();
 
@@ -294,13 +313,15 @@ class _TemperaturePageState extends State<TemperaturePage> {
     if (deviceHistory.isEmpty) {
       return const Center(child: Text('暂无温度数据'));
     }
-    final maxLen = deviceHistory.values.map((l) => l.length).fold<int>(0, (a, b) => a > b ? a : b);
+    final ymin = mqtt.ymin;
+    final ymax = mqtt.ymax;
+    final interval = mqtt.yinterval;
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: LineChart(
         LineChartData(
-          minY: deviceHistory.values.expand((l) => l).fold<double>(1000, (a, b) => a < b ? a : b),
-          maxY: deviceHistory.values.expand((l) => l).fold<double>(-1000, (a, b) => a > b ? a : b),
+          minY: ymin,
+          maxY: ymax,
           lineBarsData: deviceHistory.entries.toList().asMap().entries.map((entry) {
             final idx = entry.key;
             final dev = entry.value.key;
@@ -312,11 +333,16 @@ class _TemperaturePageState extends State<TemperaturePage> {
               barWidth: 3,
               dotData: FlDotData(show: false),
               belowBarData: BarAreaData(show: false),
-              // 可加legend
             );
           }).toList(),
           titlesData: FlTitlesData(
-            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: interval,
+                getTitlesWidget: (value, meta) => Text(value.toStringAsFixed(0)),
+              ),
+            ),
             bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
             rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -374,6 +400,9 @@ class _SettingsPageState extends State<SettingsPage> {
   final mqtt = MqttService();
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _msgController = TextEditingController();
+  final TextEditingController _yminController = TextEditingController();
+  final TextEditingController _ymaxController = TextEditingController();
+  final TextEditingController _yintervalController = TextEditingController();
   bool _configLoaded = false;
 
   @override
@@ -384,6 +413,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadConfig() async {
     await MqttConfigStorage().loadConfig(mqtt);
+    _yminController.text = mqtt.ymin.toString();
+    _ymaxController.text = mqtt.ymax.toString();
+    _yintervalController.text = mqtt.yinterval.toString();
     setState(() {
       _configLoaded = true;
     });
@@ -392,6 +424,9 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void dispose() {
     _msgController.dispose();
+    _yminController.dispose();
+    _ymaxController.dispose();
+    _yintervalController.dispose();
     super.dispose();
   }
 
@@ -466,6 +501,38 @@ class _SettingsPageState extends State<SettingsPage> {
                 const Text('SSL连接'),
               ],
             ),
+            const SizedBox(height: 16),
+            const Text('温度曲线Y轴设置', style: TextStyle(fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _yminController,
+                    decoration: const InputDecoration(labelText: '最小温度'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (v) => mqtt.ymin = double.tryParse(v) ?? -5.0,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: _ymaxController,
+                    decoration: const InputDecoration(labelText: '最大温度'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (v) => mqtt.ymax = double.tryParse(v) ?? 50.0,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: _yintervalController,
+                    decoration: const InputDecoration(labelText: '温度间隔'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (v) => mqtt.yinterval = double.tryParse(v) ?? 5.0,
+                  ),
+                ),
+              ],
+            ),
             Row(
               children: [
                 ElevatedButton(
@@ -477,8 +544,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     mqtt.disconnect();
+                    await MqttConfigStorage().saveConfig(mqtt);
                     setState(() {});
                   },
                   child: const Text('断开'),
