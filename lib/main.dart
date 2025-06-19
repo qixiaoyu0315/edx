@@ -179,11 +179,78 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-class TemperaturePage extends StatelessWidget {
+class TemperaturePage extends StatefulWidget {
+  @override
+  State<TemperaturePage> createState() => _TemperaturePageState();
+}
+
+class _TemperaturePageState extends State<TemperaturePage> {
+  final mqtt = MqttService();
+  bool _connecting = false;
+  bool _configChecked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tryConnectMqtt();
+  }
+
+  Future<void> _tryConnectMqtt() async {
+    await MqttConfigStorage().loadConfig(mqtt);
+    setState(() {
+      _configChecked = true;
+    });
+    if (_isConfigValid() && !mqtt.isConnected) {
+      setState(() {
+        _connecting = true;
+      });
+      await mqtt.connect();
+      setState(() {
+        _connecting = false;
+      });
+    }
+  }
+
+  bool _isConfigValid() {
+    return mqtt.host.isNotEmpty &&
+        mqtt.port > 0 &&
+        mqtt.clientId.isNotEmpty &&
+        mqtt.topic.isNotEmpty;
+  }
+
+  void _sendRefresh() {
+    if (!mqtt.isConnected) return;
+    final builder = MqttClientPayloadBuilder();
+    builder.addString('refresh');
+    mqtt.client.publishMessage(
+      mqtt.topic,
+      MqttQos.atLeastOnce,
+      builder.payload!,
+    );
+    setState(() {});
+  }
+
+  Color _fabColor() {
+    if (!_configChecked || !_isConfigValid()) {
+      return Colors.red;
+    }
+    if (mqtt.isConnected) {
+      return Colors.green;
+    }
+    return Colors.red;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('温度页面'),
+    return Scaffold(
+      body: const Center(
+        child: Text('温度页面'),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: _fabColor(),
+        onPressed: _isConfigValid() && mqtt.isConnected ? _sendRefresh : null,
+        child: const Icon(Icons.show_chart),
+      ),
     );
   }
 }
