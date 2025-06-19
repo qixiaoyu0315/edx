@@ -128,6 +128,28 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final mqtt = MqttService();
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _msgController = TextEditingController();
+
+  @override
+  void dispose() {
+    _msgController.dispose();
+    super.dispose();
+  }
+
+  void _sendTestMessage() {
+    if (!mqtt.isConnected) return;
+    final msg = _msgController.text.trim();
+    if (msg.isEmpty) return;
+    final builder = MqttClientPayloadBuilder();
+    builder.addString(msg);
+    mqtt.client.publishMessage(
+      mqtt.topic,
+      MqttQos.atLeastOnce,
+      builder.payload!,
+    );
+    _msgController.clear();
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -203,6 +225,27 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 16),
             Text(mqtt.isConnected ? '已连接' : '未连接', style: TextStyle(color: Colors.blue)),
+            if (mqtt.isConnected) ...[
+              const Divider(height: 32),
+              const Text('MQTT测试发送', style: TextStyle(fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _msgController,
+                      decoration: const InputDecoration(
+                        labelText: '输入要发送的内容',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _sendTestMessage,
+                    child: const Text('发送'),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
