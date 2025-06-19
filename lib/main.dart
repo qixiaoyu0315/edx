@@ -1,7 +1,60 @@
 import 'package:flutter/material.dart';
+import 'package:mqtt_client/mqtt_client.dart';
+import 'package:mqtt_client/mqtt_server_client.dart';
+import 'dart:io';
 
 void main() {
   runApp(const MainApp());
+}
+
+// MQTT 单例服务
+class MqttService {
+  static final MqttService _instance = MqttService._internal();
+  factory MqttService() => _instance;
+  late MqttServerClient client;
+  bool isConnected = false;
+
+  String host = '';
+  int port = 1883;
+  String clientId = '';
+  String username = '';
+  String password = '';
+  String topic = '';
+  bool useSSL = false;
+
+  MqttService._internal();
+
+  Future<void> connect() async {
+    client = MqttServerClient(host, clientId);
+    client.port = port;
+    client.logging(on: false);
+    client.keepAlivePeriod = 20;
+    client.onDisconnected = onDisconnected;
+    client.secure = useSSL;
+    if (useSSL) {
+      client.securityContext = SecurityContext.defaultContext;
+    }
+    client.connectionMessage = MqttConnectMessage()
+        .withClientIdentifier(clientId)
+        .authenticateAs(username, password)
+        .startClean();
+    try {
+      await client.connect();
+      isConnected = client.connectionStatus?.state == MqttConnectionState.connected;
+    } catch (e) {
+      isConnected = false;
+      client.disconnect();
+    }
+  }
+
+  void disconnect() {
+    client.disconnect();
+    isConnected = false;
+  }
+
+  void onDisconnected() {
+    isConnected = false;
+  }
 }
 
 class MainApp extends StatelessWidget {
@@ -67,11 +120,92 @@ class TemperaturePage extends StatelessWidget {
   }
 }
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  final mqtt = MqttService();
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('设置页面'),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Form(
+        key: _formKey,
+        child: ListView(
+          children: [
+            TextFormField(
+              initialValue: mqtt.host,
+              decoration: const InputDecoration(labelText: 'Host'),
+              onChanged: (v) => mqtt.host = v,
+            ),
+            TextFormField(
+              initialValue: mqtt.port.toString(),
+              decoration: const InputDecoration(labelText: 'Port'),
+              keyboardType: TextInputType.number,
+              onChanged: (v) => mqtt.port = int.tryParse(v) ?? 1883,
+            ),
+            TextFormField(
+              initialValue: mqtt.clientId,
+              decoration: const InputDecoration(labelText: 'Client ID'),
+              onChanged: (v) => mqtt.clientId = v,
+            ),
+            TextFormField(
+              initialValue: mqtt.username,
+              decoration: const InputDecoration(labelText: 'Username'),
+              onChanged: (v) => mqtt.username = v,
+            ),
+            TextFormField(
+              initialValue: mqtt.password,
+              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: true,
+              onChanged: (v) => mqtt.password = v,
+            ),
+            TextFormField(
+              initialValue: mqtt.topic,
+              decoration: const InputDecoration(labelText: 'Topic'),
+              onChanged: (v) => mqtt.topic = v,
+            ),
+            Row(
+              children: [
+                Checkbox(
+                  value: mqtt.useSSL,
+                  onChanged: (v) {
+                    setState(() {
+                      mqtt.useSSL = v ?? false;
+                    });
+                  },
+                ),
+                const Text('SSL连接'),
+              ],
+            ),
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    await mqtt.connect();
+                    setState(() {});
+                  },
+                  child: const Text('连接'),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    mqtt.disconnect();
+                    setState(() {});
+                  },
+                  child: const Text('断开'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(mqtt.isConnected ? '已连接' : '未连接', style: TextStyle(color: Colors.blue)),
+          ],
+        ),
+      ),
     );
   }
 }
