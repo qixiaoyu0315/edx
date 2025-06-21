@@ -7,6 +7,31 @@ import 'package:path/path.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
 
+// 自定义三角形绘制器
+class TrianglePainter extends CustomPainter {
+  final Color color;
+  
+  TrianglePainter({required this.color});
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    
+    final path = Path();
+    path.moveTo(size.width / 2, 0);
+    path.lineTo(0, size.height);
+    path.lineTo(size.width, size.height);
+    path.close();
+    
+    canvas.drawPath(path, paint);
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await MqttConfigStorage().init();
@@ -312,6 +337,64 @@ class _TemperaturePageState extends State<TemperaturePage> {
     return Colors.red;
   }
 
+  Widget _buildLegendShape(int idx) {
+    final color = chartColors[idx % chartColors.length];
+    switch (idx % 4) {
+      case 0:
+        // 圆形
+        return Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            border: Border.all(color: Colors.white, width: 1),
+          ),
+        );
+      case 1:
+        // 方形
+        return Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.zero,
+            border: Border.all(color: Colors.white, width: 1),
+          ),
+        );
+      case 2:
+        // 三角形
+        return CustomPaint(
+          size: const Size(12, 12),
+          painter: TrianglePainter(color: color),
+        );
+      case 3:
+        // 菱形
+        return Transform.rotate(
+          angle: 0.785398, // 45度 = π/4
+          child: Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.zero,
+              border: Border.all(color: Colors.white, width: 1),
+            ),
+          ),
+        );
+      default:
+        return Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            border: Border.all(color: Colors.white, width: 1),
+          ),
+        );
+    }
+  }
+
   Widget _buildChart() {
     if (mqtt.deviceHistory.isEmpty) {
       return const Center(child: Text('暂无温度数据'));
@@ -336,7 +419,53 @@ class _TemperaturePageState extends State<TemperaturePage> {
                 isCurved: true,
                 color: chartColors[idx % chartColors.length],
                 barWidth: 3,
-                dotData: FlDotData(show: false),
+                dotData: FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, barData, index) {
+                    // 根据传感器索引选择不同的形状
+                    switch (idx % 4) {
+                      case 0:
+                        // 圆形
+                        return FlDotCirclePainter(
+                          radius: 4,
+                          color: chartColors[idx % chartColors.length],
+                          strokeWidth: 2,
+                          strokeColor: Colors.white,
+                        );
+                      case 1:
+                        // 方形 - 使用大一点的圆点来模拟方形效果
+                        return FlDotCirclePainter(
+                          radius: 5,
+                          color: chartColors[idx % chartColors.length],
+                          strokeWidth: 3,
+                          strokeColor: Colors.white,
+                        );
+                      case 2:
+                        // 三角形 - 使用小圆点
+                        return FlDotCirclePainter(
+                          radius: 3,
+                          color: chartColors[idx % chartColors.length],
+                          strokeWidth: 1,
+                          strokeColor: Colors.white,
+                        );
+                      case 3:
+                        // 菱形 - 使用中等圆点
+                        return FlDotCirclePainter(
+                          radius: 4,
+                          color: chartColors[idx % chartColors.length],
+                          strokeWidth: 2,
+                          strokeColor: Colors.black,
+                        );
+                      default:
+                        return FlDotCirclePainter(
+                          radius: 4,
+                          color: chartColors[idx % chartColors.length],
+                          strokeWidth: 2,
+                          strokeColor: Colors.white,
+                        );
+                    }
+                  },
+                ),
                 belowBarData: BarAreaData(show: false),
               );
             }).toList(),
@@ -387,7 +516,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(width: 16, height: 16, color: chartColors[idx % chartColors.length]),
+                              _buildLegendShape(idx),
                               const SizedBox(width: 4),
                               Text(dev),
                             ],
