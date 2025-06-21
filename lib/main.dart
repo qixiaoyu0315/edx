@@ -4,7 +4,7 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 import 'dart:convert';
 
 // 自定义三角形绘制器
@@ -30,6 +30,15 @@ class TrianglePainter extends CustomPainter {
   
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// 温度数据模型
+class TemperatureData {
+  final double x;
+  final double y;
+  final String device;
+
+  TemperatureData(this.x, this.y, this.device);
 }
 
 void main() async {
@@ -259,16 +268,6 @@ class _TemperaturePageState extends State<TemperaturePage> {
   final mqtt = MqttService();
   bool _connecting = false;
   bool _configChecked = false;
-  final List<Color> chartColors = [
-    Colors.blue,
-    Colors.red,
-    Colors.green,
-    Colors.orange,
-    Colors.purple,
-    Colors.brown,
-    Colors.cyan,
-    Colors.pink,
-  ];
   Stream<List<MqttReceivedMessage<MqttMessage>>>? _mqttStream;
 
   @override
@@ -338,9 +337,11 @@ class _TemperaturePageState extends State<TemperaturePage> {
   }
 
   Widget _buildLegendShape(int idx) {
-    final color = chartColors[idx % chartColors.length];
-    switch (idx % 4) {
-      case 0:
+    final color = _getRandomColor(idx);
+    final shape = _getRandomShape(idx);
+    
+    switch (shape) {
+      case DataMarkerType.circle:
         // 圆形
         return Container(
           width: 12,
@@ -351,7 +352,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
             border: Border.all(color: Colors.white, width: 1),
           ),
         );
-      case 1:
+      case DataMarkerType.rectangle:
         // 方形
         return Container(
           width: 12,
@@ -362,13 +363,13 @@ class _TemperaturePageState extends State<TemperaturePage> {
             border: Border.all(color: Colors.white, width: 1),
           ),
         );
-      case 2:
+      case DataMarkerType.triangle:
         // 三角形
         return CustomPaint(
           size: const Size(12, 12),
           painter: TrianglePainter(color: color),
         );
-      case 3:
+      case DataMarkerType.diamond:
         // 菱形
         return Transform.rotate(
           angle: 0.785398, // 45度 = π/4
@@ -402,91 +403,101 @@ class _TemperaturePageState extends State<TemperaturePage> {
     final ymin = mqtt.ymin;
     final ymax = mqtt.ymax;
     final interval = mqtt.yinterval;
+    
+    // 为每个传感器创建数据系列
+    List<ChartSeries> series = [];
+    mqtt.deviceHistory.entries.toList().asMap().entries.forEach((entry) {
+      final idx = entry.key;
+      final dev = entry.value.key;
+      final data = entry.value.value;
+      
+      // 创建温度数据点
+      List<TemperatureData> temperatureData = [];
+      for (int i = 0; i < data.length; i++) {
+        temperatureData.add(TemperatureData(i.toDouble(), data[i], dev));
+      }
+      
+      // 为每个传感器分配随机颜色和形状
+      final color = _getRandomColor(idx);
+      final shape = _getRandomShape(idx);
+      
+      MarkerSettings markerSettings = MarkerSettings(
+        isVisible: true,
+        shape: shape,
+        color: color,
+        borderColor: Colors.white,
+        borderWidth: 2,
+      );
+      
+      series.add(LineSeries<TemperatureData, double>(
+        dataSource: temperatureData,
+        xValueMapper: (TemperatureData data, _) => data.x,
+        yValueMapper: (TemperatureData data, _) => data.y,
+        name: dev,
+        color: color,
+        markerSettings: markerSettings,
+      ));
+    });
+    
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: RotatedBox(
         quarterTurns: 1,
-        child: LineChart(
-          LineChartData(
-            minY: ymin,
-            maxY: ymax,
-            lineBarsData: mqtt.deviceHistory.entries.toList().asMap().entries.map((entry) {
-              final idx = entry.key;
-              final dev = entry.value.key;
-              final data = entry.value.value;
-              return LineChartBarData(
-                spots: [for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])],
-                isCurved: true,
-                color: chartColors[idx % chartColors.length],
-                barWidth: 3,
-                dotData: FlDotData(
-                  show: true,
-                  getDotPainter: (spot, percent, barData, index) {
-                    // 根据传感器索引选择不同的形状
-                    switch (idx % 4) {
-                      case 0:
-                        // 圆形
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: chartColors[idx % chartColors.length],
-                          strokeWidth: 2,
-                          strokeColor: Colors.white,
-                        );
-                      case 1:
-                        // 方形 - 使用大一点的圆点来模拟方形效果
-                        return FlDotCirclePainter(
-                          radius: 5,
-                          color: chartColors[idx % chartColors.length],
-                          strokeWidth: 3,
-                          strokeColor: Colors.white,
-                        );
-                      case 2:
-                        // 三角形 - 使用小圆点
-                        return FlDotCirclePainter(
-                          radius: 3,
-                          color: chartColors[idx % chartColors.length],
-                          strokeWidth: 1,
-                          strokeColor: Colors.white,
-                        );
-                      case 3:
-                        // 菱形 - 使用中等圆点
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: chartColors[idx % chartColors.length],
-                          strokeWidth: 2,
-                          strokeColor: Colors.black,
-                        );
-                      default:
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: chartColors[idx % chartColors.length],
-                          strokeWidth: 2,
-                          strokeColor: Colors.white,
-                        );
-                    }
-                  },
-                ),
-                belowBarData: BarAreaData(show: false),
-              );
-            }).toList(),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: interval,
-                  getTitlesWidget: (value, meta) => Text(value.toStringAsFixed(0)),
-                ),
-              ),
-              bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        child: SfCartesianChart(
+          primaryXAxis: NumericAxis(
+            isVisible: true, // 必须为true才能显示网格线
+            labelStyle: const TextStyle(color: Colors.transparent), // 隐藏标签
+            majorTickLines: const MajorTickLines(size: 0), // 隐藏刻度
+            majorGridLines: MajorGridLines(
+              color: Colors.grey.withValues(alpha: 0.3),
+              width: 1,
             ),
-            gridData: FlGridData(show: true),
-            borderData: FlBorderData(show: true),
           ),
+          primaryYAxis: NumericAxis(
+            title: AxisTitle(text: '温度'),
+            minimum: ymin,
+            maximum: ymax,
+            interval: interval,
+          ),
+          series: series.cast<CartesianSeries>(),
+          legend: Legend(isVisible: false), // 隐藏图例
         ),
       ),
     );
+  }
+
+  // 根据索引生成随机颜色
+  Color _getRandomColor(int idx) {
+    final colors = [
+      Colors.blue,
+      Colors.red,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.brown,
+      Colors.cyan,
+      Colors.pink,
+      Colors.indigo,
+      Colors.teal,
+      Colors.amber,
+      Colors.deepPurple,
+      Colors.lightBlue,
+      Colors.lime,
+      Colors.deepOrange,
+      Colors.blueGrey,
+    ];
+    return colors[idx % colors.length];
+  }
+
+  // 根据索引生成随机形状
+  DataMarkerType _getRandomShape(int idx) {
+    final shapes = [
+      DataMarkerType.circle,
+      DataMarkerType.rectangle,
+      DataMarkerType.triangle,
+      DataMarkerType.diamond,
+    ];
+    return shapes[idx % shapes.length];
   }
 
   @override
