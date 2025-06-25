@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'dart:convert';
+import 'dart:async';
 
 // 自定义三角形绘制器
 class TrianglePainter extends CustomPainter {
@@ -269,11 +270,23 @@ class _TemperaturePageState extends State<TemperaturePage> {
   bool _connecting = false;
   bool _configChecked = false;
   Stream<List<MqttReceivedMessage<MqttMessage>>>? _mqttStream;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _tryConnectMqtt();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (_isConfigValid() && mqtt.isConnected) {
+        _sendRefresh();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _tryConnectMqtt() async {
@@ -292,6 +305,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
     }
     if (_isConfigValid() && mqtt.isConnected) {
       _subscribeAndListen();
+      _sendRefresh();
     }
   }
 
@@ -551,11 +565,6 @@ class _TemperaturePageState extends State<TemperaturePage> {
             Expanded(child: _buildChart()),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: _fabColor(),
-        onPressed: _isConfigValid() && mqtt.isConnected ? _sendRefresh : null,
-        child: const Icon(Icons.show_chart),
       ),
     );
   }
