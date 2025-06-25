@@ -7,6 +7,7 @@ import 'package:path/path.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'dart:ui';
 
 // 自定义三角形绘制器
 class TrianglePainter extends CustomPainter {
@@ -214,6 +215,7 @@ class MainApp extends StatelessWidget {
     return const MaterialApp(
       home: MainScreen(),
       debugShowCheckedModeBanner: false,
+      title: '龟龟温度计',
     );
   }
 }
@@ -451,27 +453,55 @@ class _TemperaturePageState extends State<TemperaturePage> {
     
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: RotatedBox(
-        quarterTurns: 1,
-        child: SfCartesianChart(
-          primaryXAxis: NumericAxis(
-            isVisible: true, // 必须为true才能显示网格线
-            labelStyle: const TextStyle(color: Colors.transparent), // 隐藏标签
-            majorTickLines: const MajorTickLines(size: 0), // 隐藏刻度
-            majorGridLines: MajorGridLines(
-              color: Colors.grey.withValues(alpha: 0.3),
-              width: 1,
+      child: Stack(
+        children: [
+          // 背景图片+模糊，只影响图片
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final height = constraints.maxHeight;
+              return Center(
+                child: Transform.rotate(
+                  angle: 1.5708,
+                  child: SizedBox(
+                    width: height,
+                    height: width,
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                      child: Image.asset(
+                        'assets/backe.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          // 图表内容
+          RotatedBox(
+            quarterTurns: 1,
+            child: SfCartesianChart(
+              primaryXAxis: NumericAxis(
+                isVisible: true,
+                labelStyle: const TextStyle(color: Colors.transparent),
+                majorTickLines: const MajorTickLines(size: 0),
+                majorGridLines: MajorGridLines(
+                  color: Colors.grey.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              primaryYAxis: NumericAxis(
+                title: AxisTitle(text: '温度'),
+                minimum: ymin,
+                maximum: ymax,
+                interval: interval,
+              ),
+              series: series.cast<CartesianSeries>(),
+              legend: Legend(isVisible: false),
             ),
           ),
-          primaryYAxis: NumericAxis(
-            title: AxisTitle(text: '温度'),
-            minimum: ymin,
-            maximum: ymax,
-            interval: interval,
-          ),
-          series: series.cast<CartesianSeries>(),
-          legend: Legend(isVisible: false), // 隐藏图例
-        ),
+        ],
       ),
     );
   }
@@ -550,7 +580,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
                               const SizedBox(width: 16),
                               Text(max.toStringAsFixed(1), style: const TextStyle(color: Colors.red)),
                               const SizedBox(width: 16),
-                              Text(avg.toStringAsFixed(1), style: const TextStyle(color: Colors.yellow)),
+                              Text(avg.toStringAsFixed(1), style: const TextStyle(color: Colors.orange)),
                               const SizedBox(width: 16),
                               Text(min.toStringAsFixed(1), style: const TextStyle(color: Colors.blue)),
                             ],
