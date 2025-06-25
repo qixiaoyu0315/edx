@@ -422,11 +422,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
       final shape = _getRandomShape(idx);
       
       MarkerSettings markerSettings = MarkerSettings(
-        isVisible: true,
-        shape: shape,
-        color: color,
-        borderColor: Colors.white,
-        borderWidth: 2,
+        isVisible: false,
       );
       
       series.add(LineSeries<TemperatureData, double>(
