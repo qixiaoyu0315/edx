@@ -455,7 +455,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
       padding: const EdgeInsets.all(16.0),
       child: Stack(
         children: [
-          // 背景图片+模糊，只影响图片
+          // 背景图片
           LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
@@ -466,12 +466,9 @@ class _TemperaturePageState extends State<TemperaturePage> {
                   child: SizedBox(
                     width: height,
                     height: width,
-                    child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                      child: Image.asset(
-                        'assets/backe.png',
-                        fit: BoxFit.cover,
-                      ),
+                    child: Image.asset(
+                      'assets/backe.png',
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
