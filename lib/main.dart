@@ -274,6 +274,19 @@ class _TemperaturePageState extends State<TemperaturePage> {
   Stream<List<MqttReceivedMessage<MqttMessage>>>? _mqttStream;
   Timer? _refreshTimer;
 
+  // 新增：Trackball行为
+  final TrackballBehavior _trackballBehavior = TrackballBehavior(
+    enable: true,
+    activationMode: ActivationMode.singleTap,
+    tooltipSettings: InteractiveTooltip(enable: true),
+    shouldAlwaysShow: false,
+    lineType: TrackballLineType.vertical,
+    markerSettings: TrackballMarkerSettings(
+      markerVisibility: TrackballVisibilityMode.visible,
+    ),
+    tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
+  );
+
   @override
   void initState() {
     super.initState();
@@ -419,28 +432,20 @@ class _TemperaturePageState extends State<TemperaturePage> {
     final ymin = mqtt.ymin;
     final ymax = mqtt.ymax;
     final interval = mqtt.yinterval;
-    
-    // 为每个传感器创建数据系列
     List<ChartSeries> series = [];
     mqtt.deviceHistory.entries.toList().asMap().entries.forEach((entry) {
       final idx = entry.key;
       final dev = entry.value.key;
       final data = entry.value.value;
-      
-      // 创建温度数据点
       List<TemperatureData> temperatureData = [];
       for (int i = 0; i < data.length; i++) {
         temperatureData.add(TemperatureData(i.toDouble(), data[i], dev));
       }
-      
-      // 为每个传感器分配随机颜色和形状
       final color = _getRandomColor(idx);
       final shape = _getRandomShape(idx);
-      
       MarkerSettings markerSettings = MarkerSettings(
         isVisible: false,
       );
-      
       series.add(LineSeries<TemperatureData, double>(
         dataSource: temperatureData,
         xValueMapper: (TemperatureData data, _) => data.x,
@@ -450,17 +455,15 @@ class _TemperaturePageState extends State<TemperaturePage> {
         markerSettings: markerSettings,
       ));
     });
-    
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Stack(
-        children: [
-          // 背景图片
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final height = constraints.maxHeight;
-              return Center(
+      child: LayoutBuilder(
+        builder: (outerContext, constraints) {
+          final width = constraints.maxWidth;
+          final height = constraints.maxHeight;
+          return Stack(
+            children: [
+              Center(
                 child: Transform.rotate(
                   angle: 1.5708,
                   child: SizedBox(
@@ -472,33 +475,34 @@ class _TemperaturePageState extends State<TemperaturePage> {
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-          // 图表内容
-          RotatedBox(
-            quarterTurns: 1,
-            child: SfCartesianChart(
-              primaryXAxis: NumericAxis(
-                isVisible: true,
-                labelStyle: const TextStyle(color: Colors.transparent),
-                majorTickLines: const MajorTickLines(size: 0),
-                majorGridLines: MajorGridLines(
-                  color: Colors.grey.withOpacity(0.3),
-                  width: 1,
+              ),
+              RotatedBox(
+                quarterTurns: 1,
+                child: SfCartesianChart(
+                  primaryXAxis: NumericAxis(
+                    isVisible: true,
+                    labelStyle: const TextStyle(color: Colors.transparent),
+                    majorTickLines: const MajorTickLines(size: 0),
+                    majorGridLines: MajorGridLines(
+                      color: Colors.grey.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  primaryYAxis: NumericAxis(
+                    title: AxisTitle(text: '温度'),
+                    minimum: ymin,
+                    maximum: ymax,
+                    interval: interval,
+                  ),
+                  series: series.cast<CartesianSeries>(),
+                  legend: Legend(isVisible: false),
+                  // 新增：Trackball行为
+                  trackballBehavior: _trackballBehavior,
                 ),
               ),
-              primaryYAxis: NumericAxis(
-                title: AxisTitle(text: '温度'),
-                minimum: ymin,
-                maximum: ymax,
-                interval: interval,
-              ),
-              series: series.cast<CartesianSeries>(),
-              legend: Legend(isVisible: false),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
