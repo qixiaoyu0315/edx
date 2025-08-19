@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'services/mqtt_storage.dart';
 import 'screens/temperature_page.dart';
+import 'screens/countdown_page.dart';
 import 'screens/settings_page.dart';
 
 void main() async {
@@ -31,7 +32,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  final List<Widget> _pages = [TemperaturePage(), SettingsPage()];
+  final List<Widget> _pages = [TemperaturePage(), CountdownPage(), SettingsPage()];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -46,6 +47,7 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.thermostat), label: '温度'),
+          BottomNavigationBarItem(icon: Icon(Icons.timer), label: '倒计时'),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
         ],
         currentIndex: _selectedIndex,
