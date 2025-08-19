@@ -23,6 +23,12 @@ class _CountdownPageState extends State<CountdownPage> {
     _showEditDialog(item: item);
   }
 
+  void _deleteItem(CountdownItem item) {
+    setState(() {
+      _items.remove(item);
+    });
+  }
+
   void _showEditDialog({CountdownItem? item}) {
     final isEditing = item != null;
     final _nameController = TextEditingController(
@@ -163,6 +169,34 @@ class _CountdownPageState extends State<CountdownPage> {
     }
   }
 
+  void _editTime(int index) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _timeList[index],
+    );
+    if (picked != null) {
+      final bool exists = _timeList.asMap().entries.any(
+        (entry) =>
+            entry.key != index &&
+            entry.value.hour == picked.hour &&
+            entry.value.minute == picked.minute,
+      );
+      if (!exists) {
+        setState(() {
+          _timeList[index] = picked;
+          _timeList.sort((a, b) {
+            if (a.hour != b.hour) return a.hour.compareTo(b.hour);
+            return a.minute.compareTo(b.minute);
+          });
+        });
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('该时间已存在!')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -177,47 +211,60 @@ class _CountdownPageState extends State<CountdownPage> {
         ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: _items.isEmpty
                 ? const Center(child: Text('点击右上角 + 添加项目'))
-                : ListView.builder(
+                : GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 2.5,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
                     itemCount: _items.length,
                     itemBuilder: (context, index) {
                       final item = _items[index];
                       return Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
                         child: ListTile(
-                          leading: CircleAvatar(child: Text(item.name)),
-                          title: Text('${item.milliseconds} ms'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => _editItem(item),
+                          title: Text(
+                            item.name,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          subtitle: Text('${item.milliseconds} ms'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, size: 20),
+                                onPressed: () => _editItem(item),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, size: 20),
+                                onPressed: () => _deleteItem(item),
+                              ),
+                            ],
                           ),
                         ),
                       );
                     },
                   ),
           ),
-          const Divider(height: 30, thickness: 2),
+          const Divider(height: 20, thickness: 1),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('定时发送', style: Theme.of(context).textTheme.titleLarge),
+                Text('定时投喂', style: Theme.of(context).textTheme.titleLarge),
                 Row(
                   children: [
                     Switch(
                       value: _isTimingEnabled,
-                      onChanged: (bool value) {
-                        setState(() {
-                          _isTimingEnabled = value;
-                        });
-                      },
+                      onChanged: (v) => setState(() => _isTimingEnabled = v),
                     ),
                     IconButton(
                       icon: const Icon(Icons.add_alarm),
@@ -232,27 +279,37 @@ class _CountdownPageState extends State<CountdownPage> {
           Expanded(
             child: _timeList.isEmpty
                 ? const Center(child: Text('点击闹钟图标 + 添加时间'))
-                : ListView.builder(
+                : GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 2.5,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
                     itemCount: _timeList.length,
                     itemBuilder: (context, index) {
                       final time = _timeList[index];
                       return Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
                         child: ListTile(
-                          leading: const Icon(Icons.timer_outlined),
                           title: Text(
                             '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+                            style: Theme.of(context).textTheme.titleMedium,
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () {
-                              setState(() {
-                                _timeList.removeAt(index);
-                              });
-                            },
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, size: 20),
+                                onPressed: () => _editTime(index),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, size: 20),
+                                onPressed: () =>
+                                    setState(() => _timeList.removeAt(index)),
+                              ),
+                            ],
                           ),
                         ),
                       );
