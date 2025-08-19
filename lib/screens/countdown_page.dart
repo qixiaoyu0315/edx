@@ -216,19 +216,13 @@ class _CountdownPageState extends State<CountdownPage> {
           Expanded(
             child: _items.isEmpty
                 ? const Center(child: Text('点击右上角 + 添加项目'))
-                : GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 2.5,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                        ),
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     itemCount: _items.length,
                     itemBuilder: (context, index) {
                       final item = _items[index];
                       return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         child: ListTile(
                           title: Text(
                             item.name,
@@ -279,19 +273,13 @@ class _CountdownPageState extends State<CountdownPage> {
           Expanded(
             child: _timeList.isEmpty
                 ? const Center(child: Text('点击闹钟图标 + 添加时间'))
-                : GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 2.5,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                        ),
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     itemCount: _timeList.length,
                     itemBuilder: (context, index) {
                       final time = _timeList[index];
                       return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         child: ListTile(
                           title: Text(
                             '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
