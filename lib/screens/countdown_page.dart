@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:mqtt_client/mqtt_client.dart';
 import '../models/countdown_item.dart';
 import '../services/mqtt_service.dart';
+import '../services/database_helper.dart';
 
 class CountdownPage extends StatefulWidget {
   @override
@@ -10,10 +11,30 @@ class CountdownPage extends StatefulWidget {
 }
 
 class _CountdownPageState extends State<CountdownPage> {
-  final List<CountdownItem> _items = [];
-  final List<TimeOfDay> _timeList = [];
+  final dbHelper = DatabaseHelper();
+  List<CountdownItem> _items = [];
+  List<TimeOfDay> _timeList = [];
   bool _isTimingEnabled = false;
+  bool _isLoading = true;
   final MqttService _mqttService = MqttService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final items = await dbHelper.getCountdownItems();
+    final times = await dbHelper.getTimedSchedules();
+    final isEnabled = await dbHelper.getIsTimingEnabled();
+    setState(() {
+      _items = items;
+      _timeList = times;
+      _isTimingEnabled = isEnabled;
+      _isLoading = false;
+    });
+  }
 
   void _addItem() {
     _showEditDialog();
@@ -24,6 +45,7 @@ class _CountdownPageState extends State<CountdownPage> {
   }
 
   void _deleteItem(CountdownItem item) {
+    dbHelper.deleteCountdownItem(item.id);
     setState(() {
       _items.remove(item);
     });
@@ -90,16 +112,17 @@ class _CountdownPageState extends State<CountdownPage> {
                 if (_formKey.currentState!.validate()) {
                   setState(() {
                     if (isEditing) {
-                      item.name = _nameController.text;
+                      item!.name = _nameController.text;
                       item.milliseconds = int.parse(_durationController.text);
+                      dbHelper.updateCountdownItem(item);
                     } else {
-                      _items.add(
-                        CountdownItem(
-                          id: DateTime.now().toString(),
-                          name: _nameController.text,
-                          milliseconds: int.parse(_durationController.text),
-                        ),
+                      final newItem = CountdownItem(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        name: _nameController.text,
+                        milliseconds: int.parse(_durationController.text),
                       );
+                      _items.add(newItem);
+                      dbHelper.insertCountdownItem(newItem);
                     }
                   });
                   Navigator.of(context).pop();
@@ -159,6 +182,7 @@ class _CountdownPageState extends State<CountdownPage> {
         !_timeList.any(
           (time) => time.hour == picked.hour && time.minute == picked.minute,
         )) {
+      dbHelper.insertTimedSchedule(picked);
       setState(() {
         _timeList.add(picked);
         _timeList.sort((a, b) {
@@ -182,6 +206,8 @@ class _CountdownPageState extends State<CountdownPage> {
             entry.value.minute == picked.minute,
       );
       if (!exists) {
+        final oldTime = _timeList[index];
+        dbHelper.updateTimedSchedule(oldTime, picked);
         setState(() {
           _timeList[index] = picked;
           _timeList.sort((a, b) {
@@ -199,6 +225,12 @@ class _CountdownPageState extends State<CountdownPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('吃饱喝足')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('吃饱喝足'),
@@ -258,7 +290,10 @@ class _CountdownPageState extends State<CountdownPage> {
                   children: [
                     Switch(
                       value: _isTimingEnabled,
-                      onChanged: (v) => setState(() => _isTimingEnabled = v),
+                      onChanged: (v) {
+                        dbHelper.setIsTimingEnabled(v);
+                        setState(() => _isTimingEnabled = v);
+                      },
                     ),
                     IconButton(
                       icon: const Icon(Icons.add_alarm),
@@ -294,8 +329,10 @@ class _CountdownPageState extends State<CountdownPage> {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete, size: 20),
-                                onPressed: () =>
-                                    setState(() => _timeList.removeAt(index)),
+                                onPressed: () {
+                                  dbHelper.deleteTimedSchedule(_timeList[index]);
+                                  setState(() => _timeList.removeAt(index));
+                                },
                               ),
                             ],
                           ),

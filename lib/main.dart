@@ -51,7 +51,7 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.thermostat), label: '温度'),
-          BottomNavigationBarItem(icon: Icon(Icons.timer), label: '倒计时'),
+          BottomNavigationBarItem(icon: Icon(Icons.timer), label: '干饭'),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
         ],
         currentIndex: _selectedIndex,
