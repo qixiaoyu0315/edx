@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
+import 'mqtt_storage.dart';
 
 // MQTT 单例服务
 class MqttService {
@@ -50,7 +51,7 @@ class MqttService {
     }
   }
 
-  Future<MqttConnectionState?> connect() async {
+  Future<void> connect() async {
     client = MqttServerClient(host, clientId);
     client.port = port;
     client.logging(on: false);
@@ -66,13 +67,13 @@ class MqttService {
         .startClean();
     try {
       await client.connect();
-      isConnected =
-          client.connectionStatus?.state == MqttConnectionState.connected;
-      return client.connectionStatus?.state;
+      isConnected = client.connectionStatus?.state == MqttConnectionState.connected;
+      if (isConnected) {
+        await MqttConfigStorage().saveConfig(this);
+      }
     } catch (e) {
       isConnected = false;
       client.disconnect();
-      return MqttConnectionState.faulted;
     }
   }
 
