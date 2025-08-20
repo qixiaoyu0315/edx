@@ -18,6 +18,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final TextEditingController _yminController = TextEditingController();
   final TextEditingController _ymaxController = TextEditingController();
   final TextEditingController _yintervalController = TextEditingController();
+  final TextEditingController _portController = TextEditingController();
   bool _configLoaded = false;
 
   @override
@@ -31,6 +32,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _yminController.text = mqtt.ymin.toString();
     _ymaxController.text = mqtt.ymax.toString();
     _yintervalController.text = mqtt.yinterval.toString();
+    _portController.text = mqtt.port.toString();
     if (mounted) {
       setState(() {
         _configLoaded = true;
@@ -44,6 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _yminController.dispose();
     _ymaxController.dispose();
     _yintervalController.dispose();
+    _portController.dispose();
     super.dispose();
   }
 
@@ -109,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
             onChanged: (v) => mqtt.host = v,
           ),
           ShadInputFormField(
-            initialValue: mqtt.port.toString(),
+            controller: _portController,
             label: const Text('Port'),
             keyboardType: TextInputType.number,
             onChanged: (v) => mqtt.port = int.tryParse(v) ?? 1883,
@@ -141,7 +144,21 @@ class _SettingsPageState extends State<SettingsPage> {
               ShadCheckbox(
                 value: mqtt.useSSL,
                 onChanged: (v) {
-                  setState(() => mqtt.useSSL = v);
+                  setState(() {
+                    mqtt.useSSL = v;
+                    // Auto-switch common MQTT ports on SSL toggle
+                    if (v) {
+                      if (mqtt.port == 1883 || _portController.text == '1883') {
+                        mqtt.port = 8883;
+                        _portController.text = '8883';
+                      }
+                    } else {
+                      if (mqtt.port == 8883 || _portController.text == '8883') {
+                        mqtt.port = 1883;
+                        _portController.text = '1883';
+                      }
+                    }
+                  });
                 },
               ),
               const SizedBox(width: 8),
