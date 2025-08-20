@@ -167,12 +167,25 @@ class _TemperaturePageState extends State<TemperaturePage> {
                       color: Colors.grey.withOpacity(0.3),
                       width: 1,
                     ),
+                    axisLine: AxisLine(
+                      color: Colors.grey.withOpacity(0.3),
+                      width: 1,
+                    ),
                   ),
                   primaryYAxis: NumericAxis(
-                    title: const AxisTitle(text: '温度'),
+                    // Removed Y-axis title '温度'
                     minimum: ymin,
                     maximum: ymax,
                     interval: interval,
+                    majorTickLines: const MajorTickLines(size: 0),
+                    majorGridLines: MajorGridLines(
+                      color: Colors.grey.withOpacity(0.3),
+                      width: 1,
+                    ),
+                    axisLine: AxisLine(
+                      color: Colors.grey.withOpacity(0.3),
+                      width: 1,
+                    ),
                   ),
                   series: series.cast<CartesianSeries>(),
                   legend: const Legend(isVisible: false),
@@ -218,7 +231,9 @@ class _TemperaturePageState extends State<TemperaturePage> {
             if (mqtt.deviceCurrent.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: ShadCard(
+                child: RotatedBox(
+                  quarterTurns: 1,
+                  child: ShadCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: mqtt.deviceCurrent.entries
@@ -273,6 +288,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
                         })
                         .toList(),
                   ),
+                ),
                 ),
               ),
             Expanded(child: _buildChart()),
