@@ -218,7 +218,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 await mqtt.connect();
                 setState(() {});
               },
-              child: const Text('连接'),
+              child: const Text('连接并保存'),
             ),
             const SizedBox(width: 16),
             ShadButton.destructive(
@@ -227,7 +227,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 await MqttConfigStorage().saveConfig(mqtt);
                 setState(() {});
               },
-              child: const Text('断开并保存'),
+              child: const Text('断开'),
             ),
           ],
         ),
