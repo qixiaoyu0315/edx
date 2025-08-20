@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../models/turtle_record.dart';
 import '../models/turtle.dart';
 import '../models/sort_option.dart';
@@ -31,32 +32,26 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     try {
       final records = await TurtleService.getRecords();
       final turtles = await TurtleManagementService.getTurtles();
       final sortConfig = await SortConfigService.getSortConfig();
-      
-      setState(() {
-        _records = records;
-        _turtles = turtles;
-        _sortConfig = sortConfig;
-        // 默认选择所有乌龟
-        _selectedTurtleIds = turtles.map((turtle) => turtle.id).toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('加载数据失败: $e'),
-            backgroundColor: Colors.red,
+        setState(() {
+          _records = records;
+          _turtles = turtles;
+          _sortConfig = sortConfig;
+          _selectedTurtleIds = turtles.map((turtle) => turtle.id).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ShadToaster.of(context).show(
+          ShadToast(
+            description: Text('加载数据失败: $e'),
           ),
         );
       }
@@ -64,74 +59,59 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
   }
 
   void _showTurtleSelectionDialog() {
-    showDialog(
+    showShadDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
+        final selectedTurtles = Set<String>.from(_selectedTurtleIds);
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('选择要显示的乌龟'),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 全选/全不选
-                    CheckboxListTile(
-                      title: const Text('全选/全不选'),
-                      value: _selectedTurtleIds.length == _turtles.length,
-                      onChanged: (bool? value) {
-                        setDialogState(() {
-                          if (value == true) {
-                            _selectedTurtleIds = _turtles.map((turtle) => turtle.id).toList();
-                          } else {
-                            _selectedTurtleIds.clear();
-                          }
-                        });
-                        setState(() {});
-                      },
-                    ),
-                    const Divider(),
-                    // 乌龟列表
-                    ..._turtles.map((turtle) {
-                      final isSelected = _selectedTurtleIds.contains(turtle.id);
-                      return CheckboxListTile(
-                        title: Row(
-                          children: [
-                            Container(
-                              width: 16,
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: turtle.color,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text(turtle.name)),
-                          ],
-                        ),
-                        value: isSelected,
-                        onChanged: (bool? value) {
-                          setDialogState(() {
-                            if (value == true) {
-                              _selectedTurtleIds.add(turtle.id);
-                            } else {
-                              _selectedTurtleIds.remove(turtle.id);
-                            }
-                          });
-                          setState(() {});
-                        },
-                      );
-                    }).toList(),
-                  ],
-                ),
+            return ShadDialog(
+              title: const Text('选择乌龟'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: _turtles.map((turtle) {
+                  return ShadCheckbox(
+                    value: selectedTurtles.contains(turtle.id),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        if (value == true) {
+                          selectedTurtles.add(turtle.id);
+                        } else {
+                          selectedTurtles.remove(turtle.id);
+                        }
+                      });
+                    },
+                    label: Text(turtle.name),
+                  );
+                }).toList(),
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('取消'),
+                ),
+                ShadCheckbox(
+                  value: selectedTurtles.length == _turtles.length,
+                  onChanged: (value) {
+                    setDialogState(() {
+                      if (value == true) {
+                        selectedTurtles.addAll(_turtles.map((turtle) => turtle.id));
+                      } else {
+                        selectedTurtles.clear();
+                      }
+                    });
                   },
-                  child: const Text('完成'),
+                  label: const Text('全选'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedTurtleIds = selectedTurtles.toList();
+                    });
+                    Navigator.of(context).pop();
+                    _loadData();
+                  },
+                  child: const Text('确定'),
                 ),
               ],
             );
@@ -143,149 +123,36 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = ShadTheme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
+      body: SafeArea(
+        child: Column(
           children: [
-            const Icon(
-              Icons.pets,
-              color: Colors.white,
+            _buildHeader(theme),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : TurtleTree(
+                      records: _records,
+                      turtles: _turtles,
+                      selectedTurtleIds: _selectedTurtleIds,
+                      sortConfig: _sortConfig,
+                      onRefresh: _loadData,
+                    ),
             ),
-            const SizedBox(width: 8),
-            if (_turtles.isEmpty)
-              const Text(
-                '乌龟生长记录',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              )
-            else
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _showTurtleSelectionDialog(),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _selectedTurtleIds.length == _turtles.length
-                                ? '显示所有乌龟 (${_turtles.length})'
-                                : '已选择 ${_selectedTurtleIds.length} 只乌龟',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.arrow_drop_down,
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
-        backgroundColor: Colors.green.shade600,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.sort,
-              color: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SortSettingsPage(
-                    currentConfig: _sortConfig,
-                    onConfigChanged: (newConfig) async {
-                      await SortConfigService.saveSortConfig(newConfig);
-                      setState(() {
-                        _sortConfig = newConfig;
-                      });
-                    },
-                  ),
-                ),
-              );
-            },
-            tooltip: '排序设置',
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.manage_accounts,
-              color: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TurtleManagementPage(),
-                ),
-              ).then((_) => _loadData());
-            },
-            tooltip: '乌龟管理',
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.refresh,
-              color: Colors.white,
-            ),
-            onPressed: _loadData,
-            tooltip: '刷新',
-          ),
-        ],
       ),
-      body: _isLoading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    color: Colors.green.shade600,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '正在加载记录...',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : TurtleTree(
-              records: _records,
-              turtles: _turtles,
-              selectedTurtleIds: _selectedTurtleIds,
-              sortConfig: _sortConfig,
-              onRefresh: _loadData,
-            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           if (_turtles.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('请先添加至少一只乌龟'),
-                backgroundColor: Colors.orange,
+            ShadToaster.of(context).show(
+              ShadToast(
+                description: const Text('请先添加至少一只乌龟'),
               ),
             );
             return;
           }
-          
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -296,8 +163,70 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
             ),
           );
         },
-        backgroundColor: Colors.green.shade600,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ShadThemeData theme) {
+    final selectedTurtleNames = _selectedTurtleIds
+        .map((id) {
+          try {
+            return _turtles.firstWhere((t) => t.id == id).name;
+          } catch (e) {
+            return id;
+          }
+        })
+        .join(", ");
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(Icons.pets, size: 24, color: theme.colorScheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _turtles.isEmpty
+                ? Text('乌龟生长记录', style: theme.textTheme.h4)
+                : ShadButton(
+                    onPressed: _showTurtleSelectionDialog,
+                    child: Text('乌龟: $selectedTurtleNames'),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          ShadButton.ghost(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SortSettingsPage(
+                    currentConfig: _sortConfig,
+                    onConfigChanged: (newConfig) async {
+                      await SortConfigService.saveSortConfig(newConfig);
+                      setState(() => _sortConfig = newConfig);
+                    },
+                  ),
+                ),
+              );
+            },
+            child: const Icon(Icons.sort),
+          ),
+          ShadButton.ghost(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TurtleManagementPage(),
+                ),
+              ).then((_) => _loadData());
+            },
+            child: const Icon(Icons.manage_accounts),
+          ),
+          ShadButton.ghost(
+            onPressed: _loadData,
+            child: const Icon(Icons.refresh),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'services/mqtt_storage.dart';
 import 'screens/temperature_page.dart';
 import 'screens/countdown_page.dart';
@@ -17,21 +18,23 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: MainScreen(),
+    return ShadApp(
       debugShowCheckedModeBanner: false,
-      title: '龟龟温度计',
-      // 添加本地化支持
-      localizationsDelegates: [
+      theme: ShadThemeData(
+        brightness: Brightness.light,
+        colorScheme: const ShadBlueColorScheme.light(),
+      ),
+      home: const MainScreen(),
+      localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: [
+      supportedLocales: const [
         Locale('zh', 'CN'),
         Locale('en', 'US'),
       ],
-      locale: Locale('zh', 'CN'),
+      locale: const Locale('zh', 'CN'),
     );
   }
 }
@@ -44,41 +47,69 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
-  // 更新页面列表，加入成长记录页面
+  int _currentIndex = 0;
   final List<Widget> _pages = [
-    TemperaturePage(),
-    CountdownPage(),
-    TurtleGrowthHomePage(), // 添加成长页面
-    SettingsPage(),
+    const TemperaturePage(),
+    const CountdownPage(),
+    const TurtleGrowthHomePage(), // 添加成长页面
+    const SettingsPage(),
   ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed, // 确保所有标签都可见
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.thermostat_auto),
-            label: '温度',
+      body: _pages[_currentIndex],
+      bottomNavigationBar: ShadTabs<int>(
+        value: _currentIndex,
+        onChanged: (value) => setState(() => _currentIndex = value),
+        tabBarConstraints: const BoxConstraints(maxHeight: 80),
+        contentConstraints: const BoxConstraints(),
+        tabs: [
+          ShadTab(
+            value: 0,
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.thermostat_auto),
+                Text('温度'),
+              ],
+            ),
+            content: const SizedBox.shrink(),
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.fastfood), label: '干饭'),
-          BottomNavigationBarItem(icon: Icon(Icons.theaters), label: '成长'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
+          ShadTab(
+            value: 1,
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.fastfood),
+                Text('干饭'),
+              ],
+            ),
+            content: const SizedBox.shrink(),
+          ),
+          ShadTab(
+            value: 2,
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.theaters),
+                Text('成长'),
+              ],
+            ),
+            content: const SizedBox.shrink(),
+          ),
+          ShadTab(
+            value: 3,
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.settings),
+                Text('设置'),
+              ],
+            ),
+            content: const SizedBox.shrink(),
+          ),
         ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
       ),
     );
   }

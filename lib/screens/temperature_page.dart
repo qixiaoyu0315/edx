@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mqtt_client/mqtt_client.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../models/temperature_data.dart';
 import '../services/mqtt_service.dart';
@@ -8,6 +9,8 @@ import '../services/mqtt_storage.dart';
 import '../widgets/triangle_painter.dart';
 
 class TemperaturePage extends StatefulWidget {
+  const TemperaturePage({super.key});
+
   @override
   State<TemperaturePage> createState() => _TemperaturePageState();
 }
@@ -17,14 +20,13 @@ class _TemperaturePageState extends State<TemperaturePage> {
   Stream<List<MqttReceivedMessage<MqttMessage>>>? _mqttStream;
   Timer? _refreshTimer;
 
-  // Trackball行为
   final TrackballBehavior _trackballBehavior = TrackballBehavior(
     enable: true,
     activationMode: ActivationMode.singleTap,
-    tooltipSettings: InteractiveTooltip(enable: true),
+    tooltipSettings: const InteractiveTooltip(enable: true),
     shouldAlwaysShow: false,
     lineType: TrackballLineType.vertical,
-    markerSettings: TrackballMarkerSettings(
+    markerSettings: const TrackballMarkerSettings(
       markerVisibility: TrackballVisibilityMode.visible,
     ),
     tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
@@ -56,7 +58,9 @@ class _TemperaturePageState extends State<TemperaturePage> {
       _subscribeAndListen();
       _sendRefresh();
     }
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _subscribeAndListen() {
@@ -67,9 +71,11 @@ class _TemperaturePageState extends State<TemperaturePage> {
       final pt = MqttPublishPayload.bytesToStringAsString(
         recMess.payload.message,
       );
-      setState(() {
-        mqtt.updateTemperatureData(pt);
-      });
+      if (mounted) {
+        setState(() {
+          mqtt.updateTemperatureData(pt);
+        });
+      }
     });
   }
 
@@ -89,64 +95,18 @@ class _TemperaturePageState extends State<TemperaturePage> {
       MqttQos.atLeastOnce,
       builder.payload!,
     );
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
-
 
   Widget _buildLegendShape(int idx) {
     final color = _getRandomColor(idx);
-    final shape = _getRandomShape(idx);
-
-    switch (shape) {
-      case DataMarkerType.circle:
-        return Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color,
-            border: Border.all(color: Colors.white, width: 1),
-          ),
-        );
-      case DataMarkerType.rectangle:
-        return Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.zero,
-            border: Border.all(color: Colors.white, width: 1),
-          ),
-        );
-      case DataMarkerType.triangle:
-        return CustomPaint(
-          size: const Size(12, 12),
-          painter: TrianglePainter(color: color),
-        );
-      case DataMarkerType.diamond:
-        return Transform.rotate(
-          angle: 0.785398, // 45度 = π/4
-          child: Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.zero,
-              border: Border.all(color: Colors.white, width: 1),
-            ),
-          ),
-        );
-      default:
-        return Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color,
-            border: Border.all(color: Colors.white, width: 1),
-          ),
-        );
-    }
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+    );
   }
 
   Widget _buildChart() {
@@ -166,7 +126,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
         temperatureData.add(TemperatureData(i.toDouble(), data[i], dev));
       }
       final color = _getRandomColor(idx);
-      MarkerSettings markerSettings = MarkerSettings(isVisible: false);
+      const markerSettings = MarkerSettings(isVisible: false);
       series.add(
         LineSeries<TemperatureData, double>(
           dataSource: temperatureData,
@@ -209,13 +169,13 @@ class _TemperaturePageState extends State<TemperaturePage> {
                     ),
                   ),
                   primaryYAxis: NumericAxis(
-                    title: AxisTitle(text: '温度'),
+                    title: const AxisTitle(text: '温度'),
                     minimum: ymin,
                     maximum: ymax,
                     interval: interval,
                   ),
                   series: series.cast<CartesianSeries>(),
-                  legend: Legend(isVisible: false),
+                  legend: const Legend(isVisible: false),
                   trackballBehavior: _trackballBehavior,
                 ),
               ),
@@ -226,7 +186,6 @@ class _TemperaturePageState extends State<TemperaturePage> {
     );
   }
 
-  // 根据索引生成随机颜色
   Color _getRandomColor(int idx) {
     final colors = [
       Colors.blue,
@@ -249,31 +208,17 @@ class _TemperaturePageState extends State<TemperaturePage> {
     return colors[idx % colors.length];
   }
 
-  // 根据索引生成随机形状
-  DataMarkerType _getRandomShape(int idx) {
-    final shapes = [
-      DataMarkerType.circle,
-      DataMarkerType.rectangle,
-      DataMarkerType.triangle,
-      DataMarkerType.diamond,
-    ];
-    return shapes[idx % shapes.length];
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = ShadTheme.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
             if (mqtt.deviceCurrent.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: RotatedBox(
-                  quarterTurns: 1,
+                padding: const EdgeInsets.all(16),
+                child: ShadCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: mqtt.deviceCurrent.entries
@@ -295,46 +240,35 @@ class _TemperaturePageState extends State<TemperaturePage> {
                               ? (tempList.reduce((a, b) => a + b) /
                                     tempList.length)
                               : 0.0;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _buildLegendShape(idx),
-                                  const SizedBox(width: 4),
-                                  Text(dev),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    current.toStringAsFixed(1),
-                                    style: const TextStyle(color: Colors.green),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Text(
-                                    max.toStringAsFixed(1),
-                                    style: const TextStyle(color: Colors.red),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Text(
-                                    avg.toStringAsFixed(1),
-                                    style: const TextStyle(
-                                      color: Colors.orange,
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    _buildLegendShape(idx),
+                                    const SizedBox(width: 8),
+                                    Text(dev, style: theme.textTheme.h4),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildInfoColumn(
+                                      '当前',
+                                      current,
+                                      Colors.green,
                                     ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Text(
-                                    min.toStringAsFixed(1),
-                                    style: const TextStyle(color: Colors.blue),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                            ],
+                                    _buildInfoColumn('最高', max, Colors.red),
+                                    _buildInfoColumn('平均', avg, Colors.orange),
+                                    _buildInfoColumn('最低', min, Colors.blue),
+                                  ],
+                                ),
+                              ],
+                            ),
                           );
                         })
                         .toList(),
@@ -345,6 +279,20 @@ class _TemperaturePageState extends State<TemperaturePage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildInfoColumn(String title, double value, Color color) {
+    final theme = ShadTheme.of(context);
+    return Column(
+      children: [
+        Text(title, style: theme.textTheme.muted),
+        const SizedBox(height: 4),
+        Text(
+          value.toStringAsFixed(1),
+          style: theme.textTheme.large.copyWith(color: color),
+        ),
+      ],
     );
   }
 }

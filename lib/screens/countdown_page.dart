@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:mqtt_client/mqtt_client.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../models/countdown_item.dart';
 import '../services/mqtt_service.dart';
 import '../services/database_helper.dart';
 
 class CountdownPage extends StatefulWidget {
+  const CountdownPage({super.key});
+
   @override
   _CountdownPageState createState() => _CountdownPageState();
 }
@@ -28,12 +31,14 @@ class _CountdownPageState extends State<CountdownPage> {
     final items = await dbHelper.getCountdownItems();
     final times = await dbHelper.getTimedSchedules();
     final isEnabled = await dbHelper.getIsTimingEnabled();
-    setState(() {
-      _items = items;
-      _timeList = times;
-      _isTimingEnabled = isEnabled;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _items = items;
+        _timeList = times;
+        _isTimingEnabled = isEnabled;
+        _isLoading = false;
+      });
+    }
   }
 
   void _addItem() {
@@ -49,51 +54,57 @@ class _CountdownPageState extends State<CountdownPage> {
     setState(() {
       _items.remove(item);
     });
+    ShadToaster.of(context).show(
+      ShadToast(
+        description: Text('已删除项目: ${item.name}'),
+      ),
+    );
   }
 
   void _showEditDialog({CountdownItem? item}) {
     final isEditing = item != null;
-    final _nameController = TextEditingController(
+    final nameController = TextEditingController(
       text: isEditing ? item.name : '',
     );
-    final _durationController = TextEditingController(
+    final durationController = TextEditingController(
       text: isEditing ? item.milliseconds.toString() : '',
     );
-    final _formKey = GlobalKey<FormState>();
+    final _formKey = GlobalKey<ShadFormState>();
 
-    showDialog(
+    showShadDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
+        return ShadDialog(
           title: Text(isEditing ? '修改项目' : '新增项目'),
-          content: Form(
+          child: ShadForm(
             key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: '名称 (例如: q1)'),
+                ShadInputFormField(
+                  controller: nameController,
+                  label: const Text('名称 (例如: q1)'),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
+                    if (value?.isEmpty ?? true) {
                       return '名称不能为空';
                     }
                     final regex = RegExp(r'^q\d+$');
-                    if (!regex.hasMatch(value)) {
+                    if (!regex.hasMatch(value!)) {
                       return '格式必须是 "q" 后跟数字';
                     }
                     return null;
                   },
                 ),
-                TextFormField(
-                  controller: _durationController,
-                  decoration: const InputDecoration(labelText: '倒计时 (毫秒)'),
+                const SizedBox(height: 16),
+                ShadInputFormField(
+                  controller: durationController,
+                  label: const Text('倒计时 (毫秒)'),
                   keyboardType: TextInputType.number,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
+                    if (value?.isEmpty ?? true) {
                       return '毫秒数不能为空';
                     }
-                    if (int.tryParse(value) == null) {
+                    if (int.tryParse(value!) == null) {
                       return '请输入有效的数字';
                     }
                     return null;
@@ -103,23 +114,23 @@ class _CountdownPageState extends State<CountdownPage> {
             ),
           ),
           actions: [
-            TextButton(
+            ShadButton.ghost(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('取消'),
             ),
-            ElevatedButton(
+            ShadButton(
               onPressed: () {
-                if (_formKey.currentState!.validate()) {
+                if (_formKey.currentState!.saveAndValidate()) {
                   setState(() {
                     if (isEditing) {
-                      item!.name = _nameController.text;
-                      item.milliseconds = int.parse(_durationController.text);
+                      item!.name = nameController.text;
+                      item.milliseconds = int.parse(durationController.text);
                       dbHelper.updateCountdownItem(item);
                     } else {
                       final newItem = CountdownItem(
                         id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        name: _nameController.text,
-                        milliseconds: int.parse(_durationController.text),
+                        name: nameController.text,
+                        milliseconds: int.parse(durationController.text),
                       );
                       _items.add(newItem);
                       dbHelper.insertCountdownItem(newItem);
@@ -138,9 +149,11 @@ class _CountdownPageState extends State<CountdownPage> {
 
   void _sendData() {
     if (!_mqttService.isConnected) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('MQTT 未连接!')));
+      ShadToaster.of(context).show(
+        ShadToast(
+          description: const Text('MQTT 未连接!'),
+        ),
+      );
       return;
     }
 
@@ -168,9 +181,11 @@ class _CountdownPageState extends State<CountdownPage> {
       builder.payload!,
     );
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('数据已发送!')));
+    ShadToaster.of(context).show(
+      ShadToast(
+        description: const Text('数据发送成功'),
+      ),
+    );
   }
 
   void _addTime() async {
@@ -216,141 +231,133 @@ class _CountdownPageState extends State<CountdownPage> {
           });
         });
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('该时间已存在!')));
+        ShadToaster.of(context).show(
+          ShadToast(
+            description: const Text('该时间已存在!'),
+          ),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = ShadTheme.of(context);
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('吃饱喝足')),
-        body: const Center(child: CircularProgressIndicator()),
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       );
     }
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('吃饱喝足'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _addItem,
-            tooltip: '新增项目',
-          ),
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: _items.isEmpty
-                ? const Center(child: Text('点击右上角 + 添加项目'))
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) {
-                      final item = _items[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: ListTile(
-                          title: Text(
-                            item.name,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          subtitle: Text('${item.milliseconds} ms'),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, size: 20),
-                                onPressed: () => _editItem(item),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, size: 20),
-                                onPressed: () => _deleteItem(item),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          const Divider(height: 20, thickness: 1),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('定时投喂', style: Theme.of(context).textTheme.titleLarge),
-                Row(
-                  children: [
-                    Switch(
-                      value: _isTimingEnabled,
-                      onChanged: (v) {
-                        dbHelper.setIsTimingEnabled(v);
-                        setState(() => _isTimingEnabled = v);
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add_alarm),
-                      onPressed: _addTime,
-                      tooltip: '新增时间',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _timeList.isEmpty
-                ? const Center(child: Text('点击闹钟图标 + 添加时间'))
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    itemCount: _timeList.length,
-                    itemBuilder: (context, index) {
-                      final time = _timeList[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: ListTile(
-                          title: Text(
-                            '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, size: 20),
-                                onPressed: () => _editTime(index),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, size: 20),
-                                onPressed: () {
-                                  dbHelper.deleteTimedSchedule(_timeList[index]);
-                                  setState(() => _timeList.removeAt(index));
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildCountdownCard(theme),
+            const SizedBox(height: 16),
+            _buildTimedFeedingCard(theme),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _sendData,
-        heroTag: 'sendData',
-        tooltip: '发送数据',
-        backgroundColor: _mqttService.isConnected
-            ? Theme.of(context).colorScheme.primary
-            : Colors.grey,
         child: const Icon(Icons.send),
+        backgroundColor: _mqttService.isConnected
+            ? Colors.blue
+            : Colors.grey,
+      ),
+    );
+  }
+
+  Widget _buildCountdownCard(ShadThemeData theme) {
+    return ShadCard(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('倒计时项目', style: theme.textTheme.h4),
+          ShadButton(
+            onPressed: _addItem,
+            child: const Text('新增项目'),
+          ),
+        ],
+      ),
+      child: _items.isEmpty
+          ? const Center(child: Text('点击 + 添加项目'))
+          : Column(
+              children: _items.map((item) {
+                return ListTile(
+                  title: Text(item.name),
+                  subtitle: Text('${item.milliseconds} ms'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ShadButton(
+                        onPressed: () => _editItem(item),
+                        child: const Text('编辑'),
+                      ),
+                      ShadButton(
+                        onPressed: () => _deleteItem(item),
+                        child: const Text('删除'),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+    );
+  }
+
+  Widget _buildTimedFeedingCard(ShadThemeData theme) {
+    return ShadCard(
+      title: Text('定时投喂', style: theme.textTheme.h4),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              ShadSwitch(
+                value: _isTimingEnabled,
+                onChanged: (value) {
+                  setState(() => _isTimingEnabled = value);
+                },
+              ),
+              const SizedBox(width: 8),
+              ShadButton.ghost(
+                onPressed: _addTime,
+                child: const Icon(Icons.add_alarm),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _timeList.isEmpty
+              ? const Center(child: Text('点击闹钟图标 + 添加时间'))
+              : Column(
+                  children: _timeList.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final time = entry.value;
+                    return ListTile(
+                      title: Text(
+                        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ShadButton.ghost(
+                            onPressed: () => _editTime(index),
+                            child: const Icon(Icons.edit, size: 20),
+                          ),
+                          ShadButton.ghost(
+                            onPressed: () {
+                              dbHelper.deleteTimedSchedule(time);
+                              setState(() => _timeList.removeAt(index));
+                            },
+                            child: const Icon(Icons.delete, size: 20),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+        ],
       ),
     );
   }

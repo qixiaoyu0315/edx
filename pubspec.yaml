@@ -27,6 +27,7 @@ dependencies:
   # 选择图片（相册/相机）
   image_picker: ^1.1.2
   path_provider: ^2.1.5
+  shadcn_ui: ^0.28.5
 
 dev_dependencies:
   flutter_test:
