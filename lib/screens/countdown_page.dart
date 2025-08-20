@@ -318,6 +318,7 @@ class _CountdownPageState extends State<CountdownPage> {
                 value: _isTimingEnabled,
                 onChanged: (value) {
                   setState(() => _isTimingEnabled = value);
+                  dbHelper.setIsTimingEnabled(value);
                 },
               ),
               const SizedBox(width: 8),
