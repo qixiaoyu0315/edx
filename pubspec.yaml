@@ -1,6 +1,6 @@
 name: edx
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
@@ -13,6 +13,20 @@ dependencies:
   sqflite: ^2.3.3
   path: ^1.9.0
   syncfusion_flutter_charts: ^29.2.11
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.2.2
+  fl_chart: ^0.68.0
+  flutter_colorpicker: ^1.0.3
+  file_picker: ^8.0.3
+  # 本地化支持
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+  # 系统文件保存（支持 Android SAF、iOS 文件对话框）
+  file_saver: ^0.2.14
+  # 选择图片（相册/相机）
+  image_picker: ^1.1.2
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
@@ -23,4 +37,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/backe.png
-
