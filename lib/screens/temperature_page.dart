@@ -270,16 +270,31 @@ class _TemperaturePageState extends State<TemperaturePage> {
                                 const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                      MainAxisAlignment.spaceEvenly,
                                   children: [
-                                    _buildInfoColumn(
-                                      '当前',
-                                      current,
-                                      Colors.green,
+                                    Text(
+                                      current.toStringAsFixed(1),
+                                      style: theme.textTheme.large
+                                          .copyWith(color: Colors.green),
                                     ),
-                                    _buildInfoColumn('最高', max, Colors.red),
-                                    _buildInfoColumn('平均', avg, Colors.orange),
-                                    _buildInfoColumn('最低', min, Colors.blue),
+                                    const SizedBox(width: 24),
+                                    Text(
+                                      max.toStringAsFixed(1),
+                                      style: theme.textTheme.large
+                                          .copyWith(color: Colors.red),
+                                    ),
+                                    const SizedBox(width: 24),
+                                    Text(
+                                      avg.toStringAsFixed(1),
+                                      style: theme.textTheme.large
+                                          .copyWith(color: Colors.orange),
+                                    ),
+                                    const SizedBox(width: 24),
+                                    Text(
+                                      min.toStringAsFixed(1),
+                                      style: theme.textTheme.large
+                                          .copyWith(color: Colors.blue),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -289,26 +304,12 @@ class _TemperaturePageState extends State<TemperaturePage> {
                         .toList(),
                   ),
                 ),
-                ),
               ),
-            Expanded(child: _buildChart()),
-          ],
-        ),
+            ),
+          Expanded(child: _buildChart()),
+        ],
       ),
-    );
-  }
-
-  Widget _buildInfoColumn(String title, double value, Color color) {
-    final theme = ShadTheme.of(context);
-    return Column(
-      children: [
-        Text(title, style: theme.textTheme.muted),
-        const SizedBox(height: 4),
-        Text(
-          value.toStringAsFixed(1),
-          style: theme.textTheme.large.copyWith(color: color),
-        ),
-      ],
-    );
-  }
+    ),
+  );
+}
 }
