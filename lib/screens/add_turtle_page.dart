@@ -51,11 +51,13 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
   Future<void> _initializeRandomColor() async {
     try {
       final existingTurtles = await TurtleManagementService.getTurtles();
+      if (!mounted) return;
       setState(() {
         _selectedColor = Turtle.getRandomUnusedColor(existingTurtles);
       });
     } catch (e) {
       // 如果获取失败，使用默认颜色
+      if (!mounted) return;
       setState(() {
         _selectedColor = Turtle.availableColors[0];
       });
@@ -638,8 +640,9 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
       }
 
       widget.onSaved();
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('保存失败: $e'),
@@ -647,9 +650,11 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
         ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }

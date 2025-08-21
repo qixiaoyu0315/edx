@@ -4,7 +4,7 @@ import '../models/turtle_record.dart';
 import '../models/turtle.dart';
 import '../models/sort_option.dart';
 import '../utils/record_sorter.dart';
-import '../pages/record_detail_page.dart';
+import '../screens/record_detail_page.dart';
 
 class TurtleTree extends StatelessWidget {
   final List<TurtleRecord> records;

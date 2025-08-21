@@ -8,7 +8,7 @@ import 'theme/app_theme.dart';
 import 'screens/temperature_page.dart';
 import 'screens/countdown_page.dart';
 import 'screens/settings_page.dart';
-import 'pages/turtle_growth_home_page.dart'; // 导入新的成长记录页面
+import 'screens/turtle_growth_home_page.dart'; // 导入新的成长记录页面
 
 Future<void> applySystemUi({required bool fullscreen}) async {
   if (fullscreen) {
