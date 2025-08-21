@@ -63,11 +63,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     _msgController.clear();
     setState(() {});
-    ShadToaster.of(context).show(
-      ShadToast(
-        description: const Text('测试消息已发送'),
-      ),
-    );
+    ShadToaster.of(context).show(ShadToast(description: const Text('测试消息已发送')));
   }
 
   @override
@@ -89,11 +85,11 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 16),
               _buildYAxisSettingsCard(theme),
               const SizedBox(height: 16),
-              _buildConnectionControls(theme),
               if (mqtt.isConnected) ...[
-                const SizedBox(height: 16),
                 _buildTestMessageCard(theme),
+                const SizedBox(height: 16),
               ],
+              _buildConnectionControls(theme),
             ],
           ),
         ),
@@ -234,9 +230,7 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 16),
         Text(
           mqtt.isConnected ? '状态: 已连接' : '状态: 未连接',
-          style: TextStyle(
-            color: mqtt.isConnected ? Colors.green : Colors.red,
-          ),
+          style: TextStyle(color: mqtt.isConnected ? Colors.green : Colors.red),
         ),
       ],
     );
@@ -254,10 +248,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const SizedBox(width: 8),
-          ShadButton(
-            onPressed: _sendTestMessage,
-            child: const Text('发送'),
-          ),
+          ShadButton(onPressed: _sendTestMessage, child: const Text('发送')),
         ],
       ),
     );

@@ -30,10 +30,7 @@ class MainApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('zh', 'CN'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
       locale: const Locale('zh', 'CN'),
     );
   }
@@ -68,18 +65,9 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.thermostat_auto),
             label: '温度',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.fastfood),
-            label: '干饭',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.theaters),
-            label: '成长',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: '设置',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.fastfood), label: '干饭'),
+          BottomNavigationBarItem(icon: Icon(Icons.theaters), label: '成长'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
         ],
       ),
     );
