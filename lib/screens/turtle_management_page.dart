@@ -40,10 +40,7 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('加载乌龟列表失败: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('加载乌龟列表失败: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -51,19 +48,26 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Scaffold(
-      backgroundColor: Colors.green.shade50,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         title: const Text(
           '乌龟管理',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: cs.surface,
+        foregroundColor: cs.onSurface,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: theme.dividerColor.withOpacity(0.6),
           ),
         ),
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
           IconButton(
             tooltip: '备份到JSON',
@@ -72,15 +76,23 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
               setState(() => _isLoading = true);
               try {
                 // 使用系统保存对话框（公共目录/自定义目录）
-                final savedPath = await BackupImportService.exportJsonWithSystemPicker();
+                final savedPath =
+                    await BackupImportService.exportJsonWithSystemPicker();
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(savedPath.isNotEmpty ? '备份成功: $savedPath' : '已取消保存')),
+                  SnackBar(
+                    content: Text(
+                      savedPath.isNotEmpty ? '备份成功: $savedPath' : '已取消保存',
+                    ),
+                  ),
                 );
               } catch (e) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('备份失败: $e'), backgroundColor: Colors.red),
+                  SnackBar(
+                    content: Text('备份失败: $e'),
+                    backgroundColor: Colors.red,
+                  ),
                 );
               } finally {
                 if (mounted) setState(() => _isLoading = false);
@@ -93,16 +105,21 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
             onPressed: () async {
               setState(() => _isLoading = true);
               try {
-                await BackupImportService.importFromJsonWithPicker(clearExisting: true);
+                await BackupImportService.importFromJsonWithPicker(
+                  clearExisting: true,
+                );
                 await _loadTurtles();
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('导入完成')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('导入完成')));
               } catch (e) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('导入失败: $e'), backgroundColor: Colors.red),
+                  SnackBar(
+                    content: Text('导入失败: $e'),
+                    backgroundColor: Colors.red,
+                  ),
                 );
               } finally {
                 if (mounted) setState(() => _isLoading = false);
@@ -116,14 +133,14 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(
-                    color: Colors.green.shade600,
-                  ),
+                  CircularProgressIndicator(color: cs.primary),
                   const SizedBox(height: 16),
                   Text(
                     '正在加载乌龟列表...',
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: theme.textTheme.bodyMedium?.color?.withOpacity(
+                        0.7,
+                      ),
                       fontSize: 16,
                     ),
                   ),
@@ -131,48 +148,48 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
               ),
             )
           : _turtles.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.pets,
-                        size: 80,
-                        color: Colors.green.shade300,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '还没有添加乌龟\n点击右下角按钮添加第一只乌龟',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.pets,
+                    size: 80,
+                    color: cs.primary.withOpacity(0.5),
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _turtles.length,
-                  itemBuilder: (context, index) {
-                    final turtle = _turtles[index];
-                    return _buildTurtleCard(turtle);
-                  },
-                ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '还没有添加乌龟\n点击右下角按钮添加第一只乌龟',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: theme.textTheme.bodyMedium?.color?.withOpacity(
+                        0.7,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _turtles.length,
+              itemBuilder: (context, index) {
+                final turtle = _turtles[index];
+                return _buildTurtleCard(turtle);
+              },
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddTurtlePage(
-                onSaved: _loadTurtles,
-              ),
+              builder: (context) => AddTurtlePage(onSaved: _loadTurtles),
             ),
           );
         },
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
         icon: const Icon(Icons.add),
         label: const Text(
           '添加乌龟',
@@ -185,20 +202,17 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
 
   Widget _buildTurtleCard(Turtle turtle) {
     return Card(
-      elevation: 4,
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
       ),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            colors: [
-              Colors.white,
-              turtle.color.withOpacity(0.1),
-            ],
-          ),
+          color: Colors.white,
+          border: Border(left: BorderSide(color: turtle.color, width: 4)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -219,16 +233,14 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
                       height: 50,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            turtle.color.withOpacity(0.7),
-                            turtle.color,
-                          ],
+                        color: turtle.color.withOpacity(0.15),
+                        border: Border.all(
+                          color: turtle.color.withOpacity(0.3),
                         ),
                       ),
                       child: const Icon(
                         Icons.pets,
-                        color: Colors.white,
+                        color: Colors.black87,
                         size: 24,
                       ),
                     ),
@@ -248,10 +260,7 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
                         const SizedBox(height: 4),
                         Text(
                           turtle.species,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                       ],
                     ),
@@ -272,9 +281,8 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => TurtleGrowthChartPage(
-                              turtle: turtle,
-                            ),
+                            builder: (context) =>
+                                TurtleGrowthChartPage(turtle: turtle),
                           ),
                         );
                       } else if (value == 'delete') {
@@ -282,16 +290,6 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'chart',
-                        child: Row(
-                          children: [
-                            Icon(Icons.show_chart, size: 20, color: Colors.green),
-                            SizedBox(width: 8),
-                            Text('成长图表', style: TextStyle(color: Colors.green)),
-                          ],
-                        ),
-                      ),
                       const PopupMenuItem(
                         value: 'edit',
                         child: Row(
@@ -337,30 +335,25 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => TurtleGrowthChartPage(
-                            turtle: turtle,
-                          ),
+                          builder: (context) =>
+                              TurtleGrowthChartPage(turtle: turtle),
                         ),
                       );
                     },
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: turtle.color.withOpacity(0.1),
+                        color: turtle.color.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: turtle.color.withOpacity(0.3),
+                          color: turtle.color.withOpacity(0.25),
                           width: 1,
                         ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.show_chart,
-                            size: 16,
-                            color: turtle.color,
-                          ),
+                          Icon(Icons.show_chart, size: 16, color: turtle.color),
                           const SizedBox(width: 4),
                           Text(
                             '图表',
@@ -376,13 +369,14 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
                   ),
                 ],
               ),
-              if (turtle.description != null && turtle.description!.isNotEmpty) ...[
+              if (turtle.description != null &&
+                  turtle.description!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
                   turtle.description!,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey.shade700,
+                    color: Colors.black54,
                     height: 1.4,
                   ),
                 ),
@@ -396,25 +390,22 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
 
   Widget _buildInfoChip(IconData icon, String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: color,
-          ),
-          const SizedBox(width: 4),
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
-              color: color,
+              color: Colors.black87,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -441,9 +432,7 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
                 _loadTurtles();
                 Navigator.pop(context);
               },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('删除'),
             ),
           ],
