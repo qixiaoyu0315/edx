@@ -42,18 +42,27 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
           _records = records;
           _turtles = turtles;
           _sortConfig = sortConfig;
-          _selectedTurtleIds = turtles.map((turtle) => turtle.id).toList();
+          // Preserve current selection; default to all on first load.
+          final availableIds = turtles.map((t) => t.id).toSet();
+          if (_selectedTurtleIds.isEmpty) {
+            _selectedTurtleIds = availableIds.toList();
+          } else {
+            _selectedTurtleIds = _selectedTurtleIds
+                .where((id) => availableIds.contains(id))
+                .toList();
+            if (_selectedTurtleIds.isEmpty) {
+              _selectedTurtleIds = availableIds.toList();
+            }
+          }
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ShadToaster.of(context).show(
-          ShadToast(
-            description: Text('加载数据失败: $e'),
-          ),
-        );
+        ShadToaster.of(
+          context,
+        ).show(ShadToast(description: Text('加载数据失败: $e')));
       }
     }
   }
@@ -67,49 +76,84 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
           builder: (context, setDialogState) {
             return ShadDialog(
               title: const Text('选择乌龟'),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: _turtles.map((turtle) {
-                  return ShadCheckbox(
-                    value: selectedTurtles.contains(turtle.id),
-                    onChanged: (value) {
-                      setDialogState(() {
-                        if (value == true) {
-                          selectedTurtles.add(turtle.id);
-                        } else {
-                          selectedTurtles.remove(turtle.id);
-                        }
-                      });
-                    },
-                    label: Text(turtle.name),
-                  );
-                }).toList(),
+              constraints: BoxConstraints(
+                // Keep dialog within 90% of screen width so it doesn't take the full width
+                maxWidth: MediaQuery.sizeOf(context).width * 0.8,
+              ),
+              removeBorderRadiusWhenTiny: false,
+              child: Material(
+                color: Colors.transparent,
+                child: SizedBox(
+                  width: 420,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Select all control
+                      CheckboxListTile(
+                        value:
+                            selectedTurtles.length == _turtles.length &&
+                            _turtles.isNotEmpty,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            if (value == true) {
+                              selectedTurtles.addAll(
+                                _turtles.map((turtle) => turtle.id),
+                              );
+                            } else {
+                              selectedTurtles.clear();
+                            }
+                          });
+                        },
+                        title: const Text('全选'),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                      const SizedBox(height: 8),
+                      // Scrollable list
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 360),
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: _turtles.map((turtle) {
+                            return CheckboxListTile(
+                              value: selectedTurtles.contains(turtle.id),
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  if (value == true) {
+                                    selectedTurtles.add(turtle.id);
+                                  } else {
+                                    selectedTurtles.remove(turtle.id);
+                                  }
+                                });
+                              },
+                              title: Text(turtle.name),
+                              secondary: CircleAvatar(
+                                backgroundColor: turtle.color,
+                                child: const Icon(
+                                  Icons.pets,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              controlAffinity: ListTileControlAffinity.leading,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               actions: [
-                TextButton(
+                ShadButton.outline(
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('取消'),
                 ),
-                ShadCheckbox(
-                  value: selectedTurtles.length == _turtles.length,
-                  onChanged: (value) {
-                    setDialogState(() {
-                      if (value == true) {
-                        selectedTurtles.addAll(_turtles.map((turtle) => turtle.id));
-                      } else {
-                        selectedTurtles.clear();
-                      }
-                    });
-                  },
-                  label: const Text('全选'),
-                ),
-                TextButton(
+                ShadButton(
                   onPressed: () {
                     setState(() {
                       _selectedTurtleIds = selectedTurtles.toList();
                     });
                     Navigator.of(context).pop();
-                    _loadData();
                   },
                   child: const Text('确定'),
                 ),
@@ -146,20 +190,16 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           if (_turtles.isEmpty) {
-            ShadToaster.of(context).show(
-              ShadToast(
-                description: const Text('请先添加至少一只乌龟'),
-              ),
-            );
+            ShadToaster.of(
+              context,
+            ).show(ShadToast(description: const Text('请先添加至少一只乌龟')));
             return;
           }
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddRecordPage(
-                turtles: _turtles,
-                onSaved: _loadData,
-              ),
+              builder: (context) =>
+                  AddRecordPage(turtles: _turtles, onSaved: _loadData),
             ),
           );
         },
@@ -169,28 +209,16 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
   }
 
   Widget _buildHeader(ShadThemeData theme) {
-    final selectedTurtleNames = _selectedTurtleIds
-        .map((id) {
-          try {
-            return _turtles.firstWhere((t) => t.id == id).name;
-          } catch (e) {
-            return id;
-          }
-        })
-        .join(", ");
-    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(Icons.pets, size: 24, color: theme.colorScheme.primary),
-          const SizedBox(width: 12),
           Expanded(
             child: _turtles.isEmpty
                 ? Text('乌龟生长记录', style: theme.textTheme.h4)
                 : ShadButton(
                     onPressed: _showTurtleSelectionDialog,
-                    child: Text('乌龟: $selectedTurtleNames'),
+                    child: const Text('选择乌龟'),
                   ),
           ),
           const SizedBox(width: 12),

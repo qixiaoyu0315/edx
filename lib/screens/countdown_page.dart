@@ -136,7 +136,7 @@ class _CountdownPageState extends State<CountdownPage> {
             ),
           ),
           actions: [
-            ShadButton.ghost(
+            ShadButton.outline(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('取消'),
             ),
