@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../services/mqtt_service.dart';
 import '../services/mqtt_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -20,11 +22,15 @@ class _SettingsPageState extends State<SettingsPage> {
   final TextEditingController _yintervalController = TextEditingController();
   final TextEditingController _portController = TextEditingController();
   bool _configLoaded = false;
+  bool _mqttExpanded = true; // 连接成功后自动折叠
+  bool _fullscreen = false; // 全屏开关
+  bool _didAutoCollapseOnce = false; // 避免重复自动折叠
 
   @override
   void initState() {
     super.initState();
     _loadConfig();
+    _loadFullscreenPref();
   }
 
   Future<void> _loadConfig() async {
@@ -36,7 +42,57 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) {
       setState(() {
         _configLoaded = true;
+        // 首次加载时根据连接状态设置折叠
+        if (mqtt.isConnected) {
+          _mqttExpanded = false;
+          _didAutoCollapseOnce = true;
+        }
       });
+    }
+  }
+
+  Future<void> _loadFullscreenPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getBool('fullscreen') ?? false;
+    if (!mounted) return;
+    setState(() => _fullscreen = value);
+  }
+
+  Future<void> _setFullscreen(bool value) async {
+    setState(() => _fullscreen = value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('fullscreen', value);
+    if (value) {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.light,
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemStatusBarContrastEnforced: false,
+          systemNavigationBarContrastEnforced: false,
+        ),
+      );
+    } else {
+      await SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarColor: Colors.white,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+          systemNavigationBarColor: Colors.white,
+          systemNavigationBarIconBrightness: Brightness.dark,
+          systemNavigationBarDividerColor: Colors.black12,
+          systemStatusBarContrastEnforced: false,
+          systemNavigationBarContrastEnforced: false,
+        ),
+      );
     }
   }
 
@@ -73,24 +129,40 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     final theme = ShadTheme.of(context);
 
+    // 当页面显示且已连接时，自动折叠一次
+    if (mqtt.isConnected && !_didAutoCollapseOnce && _mqttExpanded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _mqttExpanded = false;
+            _didAutoCollapseOnce = true;
+          });
+        }
+      });
+    }
+
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: ShadForm(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildMqttSettingsCard(theme),
-              const SizedBox(height: 16),
-              _buildYAxisSettingsCard(theme),
-              const SizedBox(height: 16),
-              if (mqtt.isConnected) ...[
-                _buildTestMessageCard(theme),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: ShadForm(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildMqttSettingsCard(theme),
                 const SizedBox(height: 16),
+                _buildYAxisSettingsCard(theme),
+                const SizedBox(height: 16),
+                if (mqtt.isConnected) ...[
+                  _buildTestMessageCard(theme),
+                  const SizedBox(height: 16),
+                ],
+                _buildConnectionControls(theme),
+                const SizedBox(height: 16),
+                _buildDisplaySettingsCard(theme),
               ],
-              _buildConnectionControls(theme),
-            ],
+            ),
           ),
         ),
       ),
@@ -99,70 +171,91 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildMqttSettingsCard(ShadThemeData theme) {
     return ShadCard(
-      title: Text('MQTT 设置', style: theme.textTheme.h4),
-      child: Column(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          ShadInputFormField(
-            initialValue: mqtt.host,
-            label: const Text('Host'),
-            onChanged: (v) => mqtt.host = v,
-          ),
-          ShadInputFormField(
-            controller: _portController,
-            label: const Text('Port'),
-            keyboardType: TextInputType.number,
-            onChanged: (v) => mqtt.port = int.tryParse(v) ?? 1883,
-          ),
-          ShadInputFormField(
-            initialValue: mqtt.clientId,
-            label: const Text('Client ID'),
-            onChanged: (v) => mqtt.clientId = v,
-          ),
-          ShadInputFormField(
-            initialValue: mqtt.username,
-            label: const Text('Username'),
-            onChanged: (v) => mqtt.username = v,
-          ),
-          ShadInputFormField(
-            initialValue: mqtt.password,
-            label: const Text('Password'),
-            obscureText: true,
-            onChanged: (v) => mqtt.password = v,
-          ),
-          ShadInputFormField(
-            initialValue: mqtt.topic,
-            label: const Text('Topic'),
-            onChanged: (v) => mqtt.topic = v,
-          ),
-          const SizedBox(height: 8),
+          Text('MQTT 设置', style: theme.textTheme.h4),
           Row(
             children: [
-              ShadCheckbox(
-                value: mqtt.useSSL,
-                onChanged: (v) {
-                  setState(() {
-                    mqtt.useSSL = v;
-                    // Auto-switch common MQTT ports on SSL toggle
-                    if (v) {
-                      if (mqtt.port == 1883 || _portController.text == '1883') {
-                        mqtt.port = 8883;
-                        _portController.text = '8883';
-                      }
-                    } else {
-                      if (mqtt.port == 8883 || _portController.text == '8883') {
-                        mqtt.port = 1883;
-                        _portController.text = '1883';
-                      }
-                    }
-                  });
-                },
-              ),
+              Text(_mqttExpanded ? '收起' : '展开', style: theme.textTheme.muted),
               const SizedBox(width: 8),
-              const Text('SSL连接'),
+              ShadButton.ghost(
+                onPressed: () => setState(() => _mqttExpanded = !_mqttExpanded),
+                child: Icon(
+                  _mqttExpanded ? Icons.expand_less : Icons.expand_more,
+                ),
+              ),
             ],
           ),
         ],
       ),
+      child: !_mqttExpanded
+          ? const SizedBox.shrink()
+          : Column(
+              children: [
+                ShadInputFormField(
+                  initialValue: mqtt.host,
+                  label: const Text('Host'),
+                  onChanged: (v) => mqtt.host = v,
+                ),
+                ShadInputFormField(
+                  controller: _portController,
+                  label: const Text('Port'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => mqtt.port = int.tryParse(v) ?? 1883,
+                ),
+                ShadInputFormField(
+                  initialValue: mqtt.clientId,
+                  label: const Text('Client ID'),
+                  onChanged: (v) => mqtt.clientId = v,
+                ),
+                ShadInputFormField(
+                  initialValue: mqtt.username,
+                  label: const Text('Username'),
+                  onChanged: (v) => mqtt.username = v,
+                ),
+                ShadInputFormField(
+                  initialValue: mqtt.password,
+                  label: const Text('Password'),
+                  obscureText: true,
+                  onChanged: (v) => mqtt.password = v,
+                ),
+                ShadInputFormField(
+                  initialValue: mqtt.topic,
+                  label: const Text('Topic'),
+                  onChanged: (v) => mqtt.topic = v,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    ShadCheckbox(
+                      value: mqtt.useSSL,
+                      onChanged: (v) {
+                        setState(() {
+                          mqtt.useSSL = v;
+                          // Auto-switch common MQTT ports on SSL toggle
+                          if (v) {
+                            if (mqtt.port == 1883 ||
+                                _portController.text == '1883') {
+                              mqtt.port = 8883;
+                              _portController.text = '8883';
+                            }
+                          } else {
+                            if (mqtt.port == 8883 ||
+                                _portController.text == '8883') {
+                              mqtt.port = 1883;
+                              _portController.text = '1883';
+                            }
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('SSL连接'),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 
@@ -212,7 +305,11 @@ class _SettingsPageState extends State<SettingsPage> {
             ShadButton(
               onPressed: () async {
                 await mqtt.connect();
-                setState(() {});
+                setState(() {
+                  if (mqtt.isConnected) {
+                    _mqttExpanded = false; // 连接成功后折叠
+                  }
+                });
               },
               child: const Text('连接并保存'),
             ),
@@ -221,7 +318,9 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: () async {
                 mqtt.disconnect();
                 await MqttConfigStorage().saveConfig(mqtt);
-                setState(() {});
+                setState(() {
+                  _mqttExpanded = true; // 断开后默认展开
+                });
               },
               child: const Text('断开'),
             ),
@@ -249,6 +348,26 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(width: 8),
           ShadButton(onPressed: _sendTestMessage, child: const Text('发送')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDisplaySettingsCard(ShadThemeData theme) {
+    return ShadCard(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('全屏显示', style: theme.textTheme.h4),
+          Row(
+            children: [
+              const SizedBox(width: 8),
+              ShadSwitch(
+                value: _fullscreen,
+                onChanged: (v) => _setFullscreen(v),
+              ),
+            ],
+          ),
         ],
       ),
     );

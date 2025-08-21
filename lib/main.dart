@@ -1,15 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'services/mqtt_storage.dart';
 import 'screens/temperature_page.dart';
 import 'screens/countdown_page.dart';
 import 'screens/settings_page.dart';
 import 'pages/turtle_growth_home_page.dart'; // 导入新的成长记录页面
 
+Future<void> applySystemUi({required bool fullscreen}) async {
+  if (fullscreen) {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.light,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemStatusBarContrastEnforced: false,
+      systemNavigationBarContrastEnforced: false,
+    ));
+  } else {
+    // 非全屏下，使用不侵入式布局并设置不透明状态栏与适当图标颜色
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.white,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarDividerColor: Colors.black12,
+      systemStatusBarContrastEnforced: false,
+      systemNavigationBarContrastEnforced: false,
+    ));
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await MqttConfigStorage().init();
+  // 应用持久化的全屏设置（默认不全屏）
+  final prefs = await SharedPreferences.getInstance();
+  final full = prefs.getBool('fullscreen') ?? false;
+  await applySystemUi(fullscreen: full);
   runApp(const MainApp());
 }
 

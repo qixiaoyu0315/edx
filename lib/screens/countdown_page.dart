@@ -249,14 +249,16 @@ class _CountdownPageState extends State<CountdownPage> {
       );
     }
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildCountdownCard(theme),
-            const SizedBox(height: 16),
-            _buildTimedFeedingCard(theme),
-          ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              _buildCountdownCard(theme),
+              const SizedBox(height: 16),
+              _buildTimedFeedingCard(theme),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
