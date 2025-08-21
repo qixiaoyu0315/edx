@@ -9,7 +9,6 @@ import '../services/sort_config_service.dart';
 import '../widgets/turtle_tree.dart';
 import 'add_record_page.dart';
 import 'turtle_management_page.dart';
-import 'sort_settings_page.dart';
 
 class TurtleGrowthHomePage extends StatefulWidget {
   const TurtleGrowthHomePage({super.key});
@@ -25,6 +24,7 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
   SortConfig _sortConfig = SortConfig.defaultConfig;
   bool _isLoading = true;
   bool _showFilterBar = false; // 是否展开内联筛选栏
+  bool _showSortBar = false; // 是否展开内联排序栏
 
   @override
   void initState() {
@@ -134,6 +134,78 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
     );
   }
 
+  // 内联排序栏（用于时间线排序）
+  Widget _buildInlineSortBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(color: Theme.of(context).dividerColor),
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 排序字段
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: SortOption.values.map((opt) {
+              final selected = _sortConfig.option == opt;
+              return ChoiceChip(
+                label: Text(opt.displayName), // 去除解释性文字，仅显示名称
+                selected: selected,
+                onSelected: (v) async {
+                  if (!selected) {
+                    final newConfig = SortConfig(option: opt, order: _sortConfig.order);
+                    await SortConfigService.saveSortConfig(newConfig);
+                    setState(() => _sortConfig = newConfig);
+                  }
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+          // 升降序
+          Wrap(
+            spacing: 8,
+            children: [
+              ChoiceChip(
+                label: Text(SortOrder.ascending.displayName),
+                selected: _sortConfig.order == SortOrder.ascending,
+                onSelected: (v) async {
+                  if (_sortConfig.order != SortOrder.ascending) {
+                    final newConfig = SortConfig(option: _sortConfig.option, order: SortOrder.ascending);
+                    await SortConfigService.saveSortConfig(newConfig);
+                    setState(() => _sortConfig = newConfig);
+                  }
+                },
+              ),
+              ChoiceChip(
+                label: Text(SortOrder.descending.displayName),
+                selected: _sortConfig.order == SortOrder.descending,
+                onSelected: (v) async {
+                  if (_sortConfig.order != SortOrder.descending) {
+                    final newConfig = SortConfig(option: _sortConfig.option, order: SortOrder.descending);
+                    await SortConfigService.saveSortConfig(newConfig);
+                    setState(() => _sortConfig = newConfig);
+                  }
+                },
+              ),
+              const Spacer(),
+              ShadButton.ghost(
+                onPressed: () => setState(() => _showSortBar = false),
+                child: const Icon(Icons.keyboard_arrow_up),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ShadTheme.of(context);
@@ -143,6 +215,7 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
           children: [
             _buildHeader(theme),
             if (_showFilterBar) _buildInlineFilterBar(),
+            if (_showSortBar) _buildInlineSortBar(),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -193,20 +266,7 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
           ),
           const SizedBox(width: 12),
           ShadButton.ghost(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SortSettingsPage(
-                    currentConfig: _sortConfig,
-                    onConfigChanged: (newConfig) async {
-                      await SortConfigService.saveSortConfig(newConfig);
-                      setState(() => _sortConfig = newConfig);
-                    },
-                  ),
-                ),
-              );
-            },
+            onPressed: () => setState(() => _showSortBar = !_showSortBar),
             child: const Icon(Icons.sort),
           ),
           ShadButton.ghost(
