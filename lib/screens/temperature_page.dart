@@ -226,90 +226,121 @@ class _TemperaturePageState extends State<TemperaturePage> {
     final theme = ShadTheme.of(context);
     return Scaffold(
       body: SafeArea(
-        child: Column(
+        child: ShadResizablePanelGroup(
+          axis: Axis.vertical,
+          showHandle: true,
+          dividerThickness: 1,
           children: [
-            if (mqtt.deviceCurrent.isNotEmpty)
-              Padding(
+            ShadResizablePanel(
+              id: 'top',
+              defaultSize: 0.35,
+              minSize: 0.15,
+              child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: RotatedBox(
-                  quarterTurns: 1,
-                  child: ShadCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: mqtt.deviceCurrent.entries
-                        .toList()
-                        .asMap()
-                        .entries
-                        .map((entry) {
-                          final idx = entry.key;
-                          final dev = entry.value.key;
-                          final tempList = mqtt.deviceHistory[dev] ?? [];
-                          final current = mqtt.deviceCurrent[dev] ?? 0.0;
-                          final max = tempList.isNotEmpty
-                              ? tempList.reduce((a, b) => a > b ? a : b)
-                              : 0.0;
-                          final min = tempList.isNotEmpty
-                              ? tempList.reduce((a, b) => a < b ? a : b)
-                              : 0.0;
-                          final avg = tempList.isNotEmpty
-                              ? (tempList.reduce((a, b) => a + b) /
-                                    tempList.length)
-                              : 0.0;
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    _buildLegendShape(idx),
-                                    const SizedBox(width: 8),
-                                    Text(dev, style: theme.textTheme.h4),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Text(
-                                      current.toStringAsFixed(1),
-                                      style: theme.textTheme.large
-                                          .copyWith(color: Colors.green),
+                child: mqtt.deviceCurrent.isNotEmpty
+                    ? RotatedBox(
+                        quarterTurns: 1,
+                        child: ShadCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: mqtt.deviceCurrent.entries
+                                .toList()
+                                .asMap()
+                                .entries
+                                .map((entry) {
+                                  final idx = entry.key;
+                                  final dev = entry.value.key;
+                                  final tempList =
+                                      mqtt.deviceHistory[dev] ?? [];
+                                  final current =
+                                      mqtt.deviceCurrent[dev] ?? 0.0;
+                                  final max = tempList.isNotEmpty
+                                      ? tempList.reduce(
+                                          (a, b) => a > b ? a : b,
+                                        )
+                                      : 0.0;
+                                  final min = tempList.isNotEmpty
+                                      ? tempList.reduce(
+                                          (a, b) => a < b ? a : b,
+                                        )
+                                      : 0.0;
+                                  final avg = tempList.isNotEmpty
+                                      ? (tempList.reduce((a, b) => a + b) /
+                                          tempList.length)
+                                      : 0.0;
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
                                     ),
-                                    const SizedBox(width: 24),
-                                    Text(
-                                      max.toStringAsFixed(1),
-                                      style: theme.textTheme.large
-                                          .copyWith(color: Colors.red),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            _buildLegendShape(idx),
+                                            const SizedBox(width: 8),
+                                            Text(dev,
+                                                style: theme.textTheme.h4),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: [
+                                            Text(
+                                              current.toStringAsFixed(1),
+                                              style: theme.textTheme.large
+                                                  .copyWith(
+                                                      color: Colors.green),
+                                            ),
+                                            const SizedBox(width: 24),
+                                            Text(
+                                              max.toStringAsFixed(1),
+                                              style: theme.textTheme.large
+                                                  .copyWith(color: Colors.red),
+                                            ),
+                                            const SizedBox(width: 24),
+                                            Text(
+                                              avg.toStringAsFixed(1),
+                                              style: theme.textTheme.large
+                                                  .copyWith(
+                                                      color: Colors.orange),
+                                            ),
+                                            const SizedBox(width: 24),
+                                            Text(
+                                              min.toStringAsFixed(1),
+                                              style: theme.textTheme.large
+                                                  .copyWith(color: Colors.blue),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 24),
-                                    Text(
-                                      avg.toStringAsFixed(1),
-                                      style: theme.textTheme.large
-                                          .copyWith(color: Colors.orange),
-                                    ),
-                                    const SizedBox(width: 24),
-                                    Text(
-                                      min.toStringAsFixed(1),
-                                      style: theme.textTheme.large
-                                          .copyWith(color: Colors.blue),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        })
-                        .toList(),
-                  ),
-                ),
+                                  );
+                                })
+                                .toList(),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          '暂无当前数据',
+                          style: theme.textTheme.muted,
+                        ),
+                      ),
               ),
             ),
-          Expanded(child: _buildChart()),
-        ],
+            ShadResizablePanel(
+              id: 'bottom',
+              defaultSize: 0.65,
+              minSize: 0.2,
+              child: _buildChart(),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
