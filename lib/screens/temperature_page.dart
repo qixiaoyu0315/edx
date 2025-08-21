@@ -233,8 +233,9 @@ class _TemperaturePageState extends State<TemperaturePage> {
           children: [
             ShadResizablePanel(
               id: 'top',
-              defaultSize: 0.35,
-              minSize: 0.15,
+              defaultSize: 0.4,
+              minSize: 0.4,
+              maxSize: 0.65,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: mqtt.deviceCurrent.isNotEmpty
@@ -255,18 +256,14 @@ class _TemperaturePageState extends State<TemperaturePage> {
                                   final current =
                                       mqtt.deviceCurrent[dev] ?? 0.0;
                                   final max = tempList.isNotEmpty
-                                      ? tempList.reduce(
-                                          (a, b) => a > b ? a : b,
-                                        )
+                                      ? tempList.reduce((a, b) => a > b ? a : b)
                                       : 0.0;
                                   final min = tempList.isNotEmpty
-                                      ? tempList.reduce(
-                                          (a, b) => a < b ? a : b,
-                                        )
+                                      ? tempList.reduce((a, b) => a < b ? a : b)
                                       : 0.0;
                                   final avg = tempList.isNotEmpty
                                       ? (tempList.reduce((a, b) => a + b) /
-                                          tempList.length)
+                                            tempList.length)
                                       : 0.0;
                                   return Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -280,8 +277,10 @@ class _TemperaturePageState extends State<TemperaturePage> {
                                           children: [
                                             _buildLegendShape(idx),
                                             const SizedBox(width: 8),
-                                            Text(dev,
-                                                style: theme.textTheme.h4),
+                                            Text(
+                                              dev,
+                                              style: theme.textTheme.h4,
+                                            ),
                                           ],
                                         ),
                                         const SizedBox(height: 8),
@@ -293,7 +292,8 @@ class _TemperaturePageState extends State<TemperaturePage> {
                                               current.toStringAsFixed(1),
                                               style: theme.textTheme.large
                                                   .copyWith(
-                                                      color: Colors.green),
+                                                    color: Colors.green,
+                                                  ),
                                             ),
                                             const SizedBox(width: 24),
                                             Text(
@@ -306,7 +306,8 @@ class _TemperaturePageState extends State<TemperaturePage> {
                                               avg.toStringAsFixed(1),
                                               style: theme.textTheme.large
                                                   .copyWith(
-                                                      color: Colors.orange),
+                                                    color: Colors.orange,
+                                                  ),
                                             ),
                                             const SizedBox(width: 24),
                                             Text(
@@ -325,17 +326,15 @@ class _TemperaturePageState extends State<TemperaturePage> {
                         ),
                       )
                     : Center(
-                        child: Text(
-                          '暂无当前数据',
-                          style: theme.textTheme.muted,
-                        ),
+                        child: Text('暂无当前数据', style: theme.textTheme.muted),
                       ),
               ),
             ),
             ShadResizablePanel(
               id: 'bottom',
-              defaultSize: 0.65,
-              minSize: 0.2,
+              defaultSize: 0.55,
+              minSize: 0.3,
+              maxSize: 0.55,
               child: _buildChart(),
             ),
           ],
