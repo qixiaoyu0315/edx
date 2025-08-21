@@ -24,6 +24,7 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
   List<String> _selectedTurtleIds = [];
   SortConfig _sortConfig = SortConfig.defaultConfig;
   bool _isLoading = true;
+  bool _showFilterBar = false; // 是否展开内联筛选栏
 
   @override
   void initState() {
@@ -67,101 +68,69 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
     }
   }
 
-  void _showTurtleSelectionDialog() {
-    showShadDialog(
-      context: context,
-      builder: (context) {
-        final selectedTurtles = Set<String>.from(_selectedTurtleIds);
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return ShadDialog(
-              title: const Text('选择乌龟'),
-              constraints: BoxConstraints(
-                // Keep dialog within 90% of screen width so it doesn't take the full width
-                maxWidth: MediaQuery.sizeOf(context).width * 0.8,
+  Widget _buildInlineFilterBar() {
+    final allSelected = _selectedTurtleIds.length == _turtles.length && _turtles.isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(color: Theme.of(context).dividerColor),
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Checkbox(
+                value: allSelected,
+                onChanged: (value) {
+                  setState(() {
+                    if (value == true) {
+                      _selectedTurtleIds = _turtles.map((t) => t.id).toList();
+                    } else {
+                      _selectedTurtleIds.clear();
+                    }
+                  });
+                },
               ),
-              removeBorderRadiusWhenTiny: false,
-              child: Material(
-                color: Colors.transparent,
-                child: SizedBox(
-                  width: 420,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Select all control
-                      CheckboxListTile(
-                        value:
-                            selectedTurtles.length == _turtles.length &&
-                            _turtles.isNotEmpty,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            if (value == true) {
-                              selectedTurtles.addAll(
-                                _turtles.map((turtle) => turtle.id),
-                              );
-                            } else {
-                              selectedTurtles.clear();
-                            }
-                          });
-                        },
-                        title: const Text('全选'),
-                        controlAffinity: ListTileControlAffinity.leading,
-                      ),
-                      const SizedBox(height: 8),
-                      // Scrollable list
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 360),
-                        child: ListView(
-                          shrinkWrap: true,
-                          children: _turtles.map((turtle) {
-                            return CheckboxListTile(
-                              value: selectedTurtles.contains(turtle.id),
-                              onChanged: (value) {
-                                setDialogState(() {
-                                  if (value == true) {
-                                    selectedTurtles.add(turtle.id);
-                                  } else {
-                                    selectedTurtles.remove(turtle.id);
-                                  }
-                                });
-                              },
-                              title: Text(turtle.name),
-                              secondary: CircleAvatar(
-                                backgroundColor: turtle.color,
-                                child: const Icon(
-                                  Icons.pets,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              controlAffinity: ListTileControlAffinity.leading,
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              const Text('全选'),
+              const Spacer(),
+              ShadButton.ghost(
+                onPressed: () => setState(() => _showFilterBar = false),
+                child: const Icon(Icons.keyboard_arrow_up),
               ),
-              actions: [
-                ShadButton.outline(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('取消'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _turtles.map((turtle) {
+              final selected = _selectedTurtleIds.contains(turtle.id);
+              return FilterChip(
+                selected: selected,
+                label: Text(turtle.name),
+                avatar: CircleAvatar(
+                  backgroundColor: turtle.color,
+                  child: const Icon(Icons.pets, size: 12, color: Colors.white),
                 ),
-                ShadButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedTurtleIds = selectedTurtles.toList();
-                    });
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('确定'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                onSelected: (value) {
+                  setState(() {
+                    if (value) {
+                      _selectedTurtleIds.add(turtle.id);
+                    } else {
+                      _selectedTurtleIds.remove(turtle.id);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -173,6 +142,7 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
         child: Column(
           children: [
             _buildHeader(theme),
+            if (_showFilterBar) _buildInlineFilterBar(),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -217,7 +187,7 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
             child: _turtles.isEmpty
                 ? Text('乌龟生长记录', style: theme.textTheme.h4)
                 : ShadButton(
-                    onPressed: _showTurtleSelectionDialog,
+                    onPressed: () => setState(() => _showFilterBar = !_showFilterBar),
                     child: const Text('选择乌龟'),
                   ),
           ),
