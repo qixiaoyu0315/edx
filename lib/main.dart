@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/mqtt_storage.dart';
+import 'theme/app_theme.dart';
 import 'screens/temperature_page.dart';
 import 'screens/countdown_page.dart';
 import 'screens/settings_page.dart';
@@ -30,7 +31,8 @@ Future<void> applySystemUi({required bool fullscreen}) async {
       SystemUiMode.manual,
       overlays: SystemUiOverlay.values,
     );
-    final platformBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final platformBrightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
     final bool isDark = platformBrightness == Brightness.dark;
     if (isDark) {
       // 透明 + 浅色图标，避免暗色模式下出现白色状态栏
@@ -69,6 +71,8 @@ void main() async {
   // 应用持久化的全屏设置（默认不全屏）
   final prefs = await SharedPreferences.getInstance();
   final full = prefs.getBool('fullscreen') ?? false;
+  // 加载持久化主题色（默认 gray）
+  appScheme.value = prefs.getString('theme_scheme') ?? kDefaultScheme;
   await applySystemUi(fullscreen: full);
   runApp(const MainApp());
 }
@@ -78,25 +82,30 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShadApp(
-      debugShowCheckedModeBanner: false,
-      theme: ShadThemeData(
-        brightness: Brightness.light,
-        colorScheme: const ShadBlueColorScheme.light(),
-      ),
-      darkTheme: ShadThemeData(
-        brightness: Brightness.dark,
-        colorScheme: const ShadBlueColorScheme.dark(),
-      ),
-      themeMode: ThemeMode.system,
-      home: const MainScreen(),
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
-      locale: const Locale('zh', 'CN'),
+    return ValueListenableBuilder<String>(
+      valueListenable: appScheme,
+      builder: (context, schemeName, _) {
+        return ShadApp(
+          debugShowCheckedModeBanner: false,
+          theme: ShadThemeData(
+            brightness: Brightness.light,
+            colorScheme: schemeFor(schemeName, Brightness.light),
+          ),
+          darkTheme: ShadThemeData(
+            brightness: Brightness.dark,
+            colorScheme: schemeFor(schemeName, Brightness.dark),
+          ),
+          themeMode: ThemeMode.system,
+          home: const MainScreen(),
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
+          locale: const Locale('zh', 'CN'),
+        );
+      },
     );
   }
 }

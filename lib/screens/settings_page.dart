@@ -5,6 +5,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../services/mqtt_service.dart';
 import '../services/mqtt_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/app_theme.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -25,12 +26,14 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _mqttExpanded = true; // 连接成功后自动折叠
   bool _fullscreen = false; // 全屏开关
   bool _didAutoCollapseOnce = false; // 避免重复自动折叠
+  String _currentScheme = kDefaultScheme; // 主题色
 
   @override
   void initState() {
     super.initState();
     _loadConfig();
     _loadFullscreenPref();
+    _currentScheme = appScheme.value; // 同步当前主题色
   }
 
   Future<void> _loadConfig() async {
@@ -159,6 +162,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 16),
                 ],
                 _buildConnectionControls(theme),
+                const SizedBox(height: 16),
+                _buildThemeColorSelectCard(theme),
                 const SizedBox(height: 16),
                 _buildDisplaySettingsCard(theme),
               ],
@@ -367,6 +372,50 @@ class _SettingsPageState extends State<SettingsPage> {
                 onChanged: (v) => _setFullscreen(v),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeColorSelectCard(ShadThemeData theme) {
+    final brightness = theme.brightness;
+    Widget colorDot(Color color) => Container(
+      width: 12,
+      height: 12,
+      margin: const EdgeInsets.only(right: 8),
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: theme.colorScheme.border),
+      ),
+    );
+
+    Widget optionRow(String name) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [colorDot(schemeFor(name, brightness).primary), Text(name)],
+    );
+
+    return ShadCard(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('主题色', style: theme.textTheme.h4),
+          ShadSelect<String>(
+            placeholder: const Text('选择主题色'),
+            initialValue: _currentScheme,
+            selectedOptionBuilder: (context, value) => optionRow(value),
+            options: [
+              for (final name in kSupportedSchemes)
+                ShadOption<String>(value: name, child: optionRow(name)),
+            ],
+            onChanged: (value) async {
+              if (value == null) return;
+              setState(() => _currentScheme = value);
+              appScheme.value = value;
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('theme_scheme', value);
+            },
           ),
         ],
       ),

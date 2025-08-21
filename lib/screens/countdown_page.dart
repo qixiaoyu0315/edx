@@ -54,11 +54,9 @@ class _CountdownPageState extends State<CountdownPage> {
     setState(() {
       _items.remove(item);
     });
-    ShadToaster.of(context).show(
-      ShadToast(
-        description: Text('已删除项目: ${item.name}'),
-      ),
-    );
+    ShadToaster.of(
+      context,
+    ).show(ShadToast(description: Text('已删除项目: ${item.name}')));
   }
 
   void _showEditDialog({CountdownItem? item}) {
@@ -149,11 +147,9 @@ class _CountdownPageState extends State<CountdownPage> {
 
   void _sendData() {
     if (!_mqttService.isConnected) {
-      ShadToaster.of(context).show(
-        ShadToast(
-          description: const Text('MQTT 未连接!'),
-        ),
-      );
+      ShadToaster.of(
+        context,
+      ).show(ShadToast(description: const Text('MQTT 未连接!')));
       return;
     }
 
@@ -181,11 +177,7 @@ class _CountdownPageState extends State<CountdownPage> {
       builder.payload!,
     );
 
-    ShadToaster.of(context).show(
-      ShadToast(
-        description: const Text('数据发送成功'),
-      ),
-    );
+    ShadToaster.of(context).show(ShadToast(description: const Text('数据发送成功')));
   }
 
   void _addTime() async {
@@ -231,11 +223,9 @@ class _CountdownPageState extends State<CountdownPage> {
           });
         });
       } else {
-        ShadToaster.of(context).show(
-          ShadToast(
-            description: const Text('该时间已存在!'),
-          ),
-        );
+        ShadToaster.of(
+          context,
+        ).show(ShadToast(description: const Text('该时间已存在!')));
       }
     }
   }
@@ -244,9 +234,7 @@ class _CountdownPageState extends State<CountdownPage> {
   Widget build(BuildContext context) {
     final theme = ShadTheme.of(context);
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
       body: SafeArea(
@@ -265,8 +253,8 @@ class _CountdownPageState extends State<CountdownPage> {
         onPressed: _sendData,
         child: const Icon(Icons.send),
         backgroundColor: _mqttService.isConnected
-            ? Colors.blue
-            : Colors.grey,
+            ? theme.colorScheme.primary
+            : theme.colorScheme.destructive,
       ),
     );
   }
@@ -276,44 +264,59 @@ class _CountdownPageState extends State<CountdownPage> {
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('倒计时项目', style: theme.textTheme.h4),
-          ShadButton(
+          Text('干饭干饭', style: theme.textTheme.h4),
+          ShadButton.ghost(
             onPressed: _addItem,
-            child: const Text('新增项目'),
+            child: const Icon(Icons.add_sharp, size: 25),
           ),
         ],
       ),
       child: _items.isEmpty
           ? const Center(child: Text('点击 + 添加项目'))
-          : Column(
-              children: _items.map((item) {
+          : ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                final item = _items[index];
                 return ListTile(
-                  title: Text(item.name),
-                  subtitle: Text('${item.milliseconds} ms'),
+                  title: Row(
+                    children: [
+                      Text(item.name + '/' + '${item.milliseconds} ms'),
+                    ],
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      ShadButton(
+                      ShadButton.ghost(
                         onPressed: () => _editItem(item),
-                        child: const Text('编辑'),
+                        child: const Icon(Icons.edit, size: 20),
                       ),
-                      ShadButton(
+                      ShadButton.ghost(
                         onPressed: () => _deleteItem(item),
-                        child: const Text('删除'),
+                        child: const Icon(Icons.delete, size: 20),
                       ),
                     ],
                   ),
                 );
-              }).toList(),
+              },
+              separatorBuilder: (context, index) =>
+                  const ShadSeparator.horizontal(
+                    thickness: 2,
+                    margin: EdgeInsets.symmetric(horizontal: 5),
+                    radius: BorderRadius.all(Radius.circular(4)),
+                  ),
             ),
     );
   }
 
   Widget _buildTimedFeedingCard(ShadThemeData theme) {
     return ShadCard(
-      title: Text('定时投喂', style: theme.textTheme.h4),
-      child: Column(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Text('定时投喂', style: theme.textTheme.h4),
+          const SizedBox(width: 20),
           Row(
             children: [
               ShadSwitch(
@@ -323,20 +326,29 @@ class _CountdownPageState extends State<CountdownPage> {
                   dbHelper.setIsTimingEnabled(value);
                 },
               ),
-              const SizedBox(width: 8),
               ShadButton.ghost(
                 onPressed: _addTime,
-                child: const Icon(Icons.add_alarm),
+                child: const Icon(Icons.add_alarm, size: 25),
               ),
+            ],
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(children: [
+
             ],
           ),
           const SizedBox(height: 16),
           _timeList.isEmpty
               ? const Center(child: Text('点击闹钟图标 + 添加时间'))
-              : Column(
-                  children: _timeList.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final time = entry.value;
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _timeList.length,
+                  itemBuilder: (context, index) {
+                    final time = _timeList[index];
                     return ListTile(
                       title: Text(
                         '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
@@ -358,7 +370,13 @@ class _CountdownPageState extends State<CountdownPage> {
                         ],
                       ),
                     );
-                  }).toList(),
+                  },
+                  separatorBuilder: (context, index) =>
+                      const ShadSeparator.horizontal(
+                        thickness: 2,
+                        margin: EdgeInsets.symmetric(horizontal: 5),
+                        radius: BorderRadius.all(Radius.circular(4)),
+                      ),
                 ),
         ],
       ),
