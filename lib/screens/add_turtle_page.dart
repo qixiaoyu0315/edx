@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -77,11 +78,11 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
     final isEditing = widget.turtleToEdit != null;
     
     return Scaffold(
-      backgroundColor: Colors.green.shade50,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: Text(isEditing ? '编辑乌龟' : '添加乌龟'),
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
       ),
       body: Form(
@@ -106,7 +107,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                         children: [
                           Icon(
                             Icons.pets,
-                            color: Colors.green.shade600,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           const Text(
@@ -174,7 +175,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                         children: [
                           Icon(
                             Icons.account_circle,
-                            color: Colors.teal.shade700,
+                            color: Theme.of(context).colorScheme.secondary,
                           ),
                           const SizedBox(width: 8),
                           const Text(
@@ -186,14 +187,20 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                           ),
                           const Spacer(),
                           if (_photoPath != null)
-                            TextButton.icon(
+                            ShadButton.ghost(
                               onPressed: () {
                                 setState(() {
                                   _photoPath = null;
                                 });
                               },
-                              icon: const Icon(Icons.delete_outline),
-                              label: const Text('移除'),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.delete_outline),
+                                  SizedBox(width: 6),
+                                  Text('移除'),
+                                ],
+                              ),
                             ),
                         ],
                       ),
@@ -202,10 +209,10 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                         children: [
                           CircleAvatar(
                             radius: 40,
-                            backgroundColor: Colors.teal.shade50,
+                            backgroundColor: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3),
                             backgroundImage: _photoPath != null ? FileImage(File(_photoPath!)) : null,
                             child: _photoPath == null
-                                ? Icon(Icons.pets, color: Colors.teal.shade400, size: 36)
+                                ? Icon(Icons.pets, color: Theme.of(context).colorScheme.secondary, size: 36)
                                 : null,
                           ),
                           const SizedBox(width: 16),
@@ -213,7 +220,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                OutlinedButton.icon(
+                                ShadButton.ghost(
                                   onPressed: () async {
                                     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
                                     if (image != null) {
@@ -222,11 +229,17 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                                       });
                                     }
                                   },
-                                  icon: const Icon(Icons.photo_library),
-                                  label: const Text('从相册选择'),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.photo_library),
+                                      SizedBox(width: 6),
+                                      Text('从相册选择'),
+                                    ],
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
-                                OutlinedButton.icon(
+                                ShadButton.ghost(
                                   onPressed: () async {
                                     final XFile? image = await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
                                     if (image != null) {
@@ -235,8 +248,14 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                                       });
                                     }
                                   },
-                                  icon: const Icon(Icons.photo_camera),
-                                  label: const Text('拍照'),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.photo_camera),
+                                      SizedBox(width: 6),
+                                      Text('拍照'),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -264,7 +283,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                         children: [
                           Icon(
                             Icons.cake,
-                            color: Colors.orange.shade600,
+                            color: Theme.of(context).colorScheme.secondary,
                           ),
                           const SizedBox(width: 8),
                           const Text(
@@ -282,14 +301,14 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
+                            border: Border.all(color: Theme.of(context).dividerColor),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             children: [
                               Icon(
                                 Icons.date_range,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -299,7 +318,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                               const Spacer(),
                               Icon(
                                 Icons.arrow_drop_down,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ],
                           ),
@@ -326,7 +345,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                         children: [
                           Icon(
                             Icons.palette,
-                            color: Colors.purple.shade600,
+                            color: Theme.of(context).colorScheme.tertiary,
                           ),
                           const SizedBox(width: 8),
                           const Text(
@@ -359,7 +378,9 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                                   color: color,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: isSelected ? Colors.black : Colors.transparent,
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.onSurface
+                                        : Colors.transparent,
                                     width: 3,
                                   ),
                                   boxShadow: [
@@ -387,15 +408,15 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
+                                color: Theme.of(context).colorScheme.surfaceVariant,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.grey.shade400,
+                                  color: Theme.of(context).dividerColor,
                                   width: 2,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.grey.withOpacity(0.3),
+                                    color: Theme.of(context).shadowColor.withOpacity(0.15),
                                     blurRadius: 8,
                                     spreadRadius: 2,
                                   ),
@@ -403,7 +424,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                               ),
                               child: Icon(
                                 Icons.add,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 size: 24,
                               ),
                             ),
@@ -494,7 +515,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                         children: [
                           Icon(
                             Icons.description,
-                            color: Colors.blue.shade600,
+                            color: Theme.of(context).colorScheme.tertiary,
                           ),
                           const SizedBox(width: 8),
                           const Text(
@@ -528,26 +549,11 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
               // 保存按钮
               SizedBox(
                 width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
+                child: ShadButton(
                   onPressed: _isLoading ? null : _saveTurtle,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade600,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 4,
-                  ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          isEditing ? '更新乌龟' : '保存乌龟',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(isEditing ? '更新乌龟' : '保存乌龟'),
                 ),
               ),
             ],
@@ -643,11 +649,8 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('保存失败: $e'),
-          backgroundColor: Colors.red,
-        ),
+      ShadToaster.of(context).show(
+        ShadToast(description: Text('保存失败: $e')),
       );
     } finally {
       if (mounted) {

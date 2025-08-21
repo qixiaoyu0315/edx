@@ -227,11 +227,7 @@ class _CountdownPageState extends State<CountdownPage> {
     final timePart = times is List && times.isNotEmpty
         ? '\n定时${times.length}个: ${times.take(4).join(', ')}${times.length > 4 ? '…' : ''}'
         : '';
-    final ts = _lastSentAt;
-    final tsStr = ts == null
-        ? ''
-        : '  (${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}:${ts.second.toString().padLeft(2, '0')})';
-    return '引脚: $preview$more$timePart$tsStr';
+    return '引脚: $preview$more$timePart';
   }
 
   void _addTime() async {
