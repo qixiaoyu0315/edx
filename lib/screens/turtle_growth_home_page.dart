@@ -275,7 +275,7 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
           const SizedBox(width: 12),
           ShadButton.ghost(
             onPressed: () => setState(() => _showSortBar = !_showSortBar),
-            child: const Icon(Icons.sort),
+            child: const Icon(Icons.sort, size: 25),
           ),
           ShadButton.ghost(
             onPressed: () {
@@ -286,11 +286,11 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
                 ),
               ).then((_) => _loadData());
             },
-            child: const Icon(Icons.manage_accounts),
+            child: const Icon(Icons.manage_accounts, size: 25),
           ),
           ShadButton.ghost(
             onPressed: _loadData,
-            child: const Icon(Icons.refresh),
+            child: const Icon(Icons.refresh, size: 25),
           ),
         ],
       ),
