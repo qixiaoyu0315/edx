@@ -122,7 +122,11 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     _msgController.clear();
     setState(() {});
-    ShadToaster.of(context).show(ShadToast(description: const Text('测试消息已发送')));
+    ShadToaster.of(context).show(ShadToast(
+      backgroundColor: Theme.of(context).colorScheme.onPrimary,
+      alignment: Alignment.topCenter,
+      description: const Text('测试消息已发送'),
+    ));
   }
 
   @override

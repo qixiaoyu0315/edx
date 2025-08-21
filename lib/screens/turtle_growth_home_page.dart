@@ -63,7 +63,11 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
         setState(() => _isLoading = false);
         ShadToaster.of(
           context,
-        ).show(ShadToast(description: Text('加载数据失败: $e')));
+        ).show(ShadToast(
+          backgroundColor: Theme.of(context).colorScheme.onPrimary,
+          alignment: Alignment.topCenter,
+          description: Text('加载数据失败: $e'),
+        ));
       }
     }
   }
@@ -235,7 +239,11 @@ class _TurtleGrowthHomePageState extends State<TurtleGrowthHomePage> {
           if (_turtles.isEmpty) {
             ShadToaster.of(
               context,
-            ).show(ShadToast(description: const Text('请先添加至少一只乌龟')));
+            ).show(ShadToast(
+              backgroundColor: Theme.of(context).colorScheme.onPrimary,
+              alignment: Alignment.topCenter,
+              description: const Text('请先添加至少一只乌龟'),
+            ));
             return;
           }
           Navigator.push(

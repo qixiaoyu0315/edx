@@ -68,8 +68,8 @@ class TurtleTree extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.blue.shade50,
-            Colors.green.shade50,
+            Theme.of(context).colorScheme.secondary,
+            Theme.of(context).colorScheme.onPrimary,
           ],
         ),
       ),
@@ -203,8 +203,8 @@ class TurtleTree extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       gradient: LinearGradient(
                         colors: [
-                          Colors.white,
-                          Colors.green.shade50,
+                          Theme.of(context).colorScheme.onPrimary,
+                          Theme.of(context).colorScheme.onPrimary.withOpacity(0.5),
                         ],
                       ),
                     ),
@@ -219,10 +219,10 @@ class TurtleTree extends StatelessWidget {
                                 children: [
                                   Text(
                                     record.title,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
+                                      color: Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                                   if (turtle != null) ...[

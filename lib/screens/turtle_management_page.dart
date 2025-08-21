@@ -206,12 +206,12 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: Theme.of(context).colorScheme.onPrimary),
       ),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.onPrimary,
           border: Border(left: BorderSide(color: turtle.color, width: 4)),
         ),
         child: Padding(
@@ -238,9 +238,9 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
                           color: turtle.color.withOpacity(0.3),
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.pets,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.primary,
                         size: 24,
                       ),
                     ),
@@ -251,16 +251,16 @@ class _TurtleManagementPageState extends State<TurtleManagementPage> {
                       children: [
                         Text(
                           turtle.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           turtle.species,
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
+                          style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.primary),
                         ),
                       ],
                     ),

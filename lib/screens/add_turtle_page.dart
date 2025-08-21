@@ -81,8 +81,8 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: Text(isEditing ? '编辑乌龟' : '添加乌龟'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.primary,
         elevation: 0,
       ),
       body: Form(
@@ -155,6 +155,84 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                           return null;
                         },
                       ),
+                      Icon(
+                            Icons.description,
+                            color: Theme.of(context).colorScheme.tertiary,
+                          ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _descriptionController,
+                        decoration: InputDecoration(
+                          labelText: '描述(可选)',
+                          hintText: '记录这只乌龟的特征、习性等...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          prefixIcon: const Icon(Icons.note_add),
+                        ),
+                        maxLines: 3,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+                           // 出生日期卡片
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.cake,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            '出生日期',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: _selectBirthDate,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Theme.of(context).dividerColor),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.date_range,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${_selectedBirthDate.year}年${_selectedBirthDate.month}月${_selectedBirthDate.day}日',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                Icons.arrow_drop_down,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -175,7 +253,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                         children: [
                           Icon(
                             Icons.account_circle,
-                            color: Theme.of(context).colorScheme.secondary,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           const Text(
@@ -212,7 +290,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                             backgroundColor: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3),
                             backgroundImage: _photoPath != null ? FileImage(File(_photoPath!)) : null,
                             child: _photoPath == null
-                                ? Icon(Icons.pets, color: Theme.of(context).colorScheme.secondary, size: 36)
+                                ? Icon(Icons.pets, color: Theme.of(context).colorScheme.primary, size: 36)
                                 : null,
                           ),
                           const SizedBox(width: 16),
@@ -268,67 +346,6 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
               ),
               const SizedBox(height: 16),
 
-              // 出生日期卡片
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.cake,
-                            color: Theme.of(context).colorScheme.secondary,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            '出生日期',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      InkWell(
-                        onTap: _selectBirthDate,
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Theme.of(context).dividerColor),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.date_range,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${_selectedBirthDate.year}年${_selectedBirthDate.month}月${_selectedBirthDate.day}日',
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              const Spacer(),
-                              Icon(
-                                Icons.arrow_drop_down,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
 
               // 颜色选择卡片
               Card(
@@ -345,7 +362,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                         children: [
                           Icon(
                             Icons.palette,
-                            color: Theme.of(context).colorScheme.tertiary,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           const Text(
@@ -499,53 +516,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // 描述卡片
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.description,
-                            color: Theme.of(context).colorScheme.tertiary,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            '描述（可选）',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _descriptionController,
-                        decoration: InputDecoration(
-                          labelText: '描述',
-                          hintText: '记录这只乌龟的特征、习性等...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          prefixIcon: const Icon(Icons.note_add),
-                        ),
-                        maxLines: 3,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
+              
               // 保存按钮
               SizedBox(
                 width: double.infinity,
@@ -650,7 +621,11 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
     } catch (e) {
       if (!mounted) return;
       ShadToaster.of(context).show(
-        ShadToast(description: Text('保存失败: $e')),
+        ShadToast(
+      backgroundColor: Theme.of(context).colorScheme.onPrimary,
+          alignment: Alignment.topCenter,
+          description: Text('保存失败: $e'),
+        ),
       );
     } finally {
       if (mounted) {

@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import '../models/turtle_record.dart';
 import '../models/turtle.dart';
 import '../services/turtle_service.dart';
+import '../theme/app_theme.dart';
+
 
 class AddRecordPage extends StatefulWidget {
   final TurtleRecord? recordToEdit;
@@ -113,8 +115,8 @@ class _AddRecordPageState extends State<AddRecordPage> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: Text(isEditing ? '编辑记录' : '添加记录'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.primary,
         elevation: 0,
       ),
       body: Form(
@@ -261,27 +263,27 @@ class _AddRecordPageState extends State<AddRecordPage> {
                         children: [
                           Expanded(
                             child: TextFormField(
-                              controller: _weightController,
-                              decoration: InputDecoration(
-                                labelText: '体重（克）',
-                                hintText: '0.0',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                prefixIcon: const Icon(Icons.monitor_weight),
-                              ),
-                              keyboardType: TextInputType.number,
-                              validator: (value) {
-                                if (value != null && value.isNotEmpty) {
-                                  final weight = double.tryParse(value);
-                                  if (weight == null || weight < 0) {
-                                    return '请输入有效的体重';
-                                  }
-                                }
-                                return null;
-                              },
-                            ),
+                        controller: _widthController,
+                        decoration: InputDecoration(
+                          labelText: '体宽（厘米）',
+                          hintText: '0.0',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          prefixIcon: const Icon(Icons.width_full),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            final width = double.tryParse(value);
+                            if (width == null || width < 0) {
+                              return '请输入有效的体宽';
+                            }
+                          }
+                          return null;
+                        },
+                      ),),
+              
                           const SizedBox(width: 12),
                           Expanded(
                             child: TextFormField(
@@ -310,26 +312,27 @@ class _AddRecordPageState extends State<AddRecordPage> {
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
-                        controller: _widthController,
-                        decoration: InputDecoration(
-                          labelText: '体宽（厘米）',
-                          hintText: '0.0',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          prefixIcon: const Icon(Icons.width_full),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            final width = double.tryParse(value);
-                            if (width == null || width < 0) {
-                              return '请输入有效的体宽';
-                            }
-                          }
-                          return null;
-                        },
-                      ),
+                              controller: _weightController,
+                              decoration: InputDecoration(
+                                labelText: '体重（克）',
+                                hintText: '0.0',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                prefixIcon: const Icon(Icons.monitor_weight),
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator: (value) {
+                                if (value != null && value.isNotEmpty) {
+                                  final weight = double.tryParse(value);
+                                  if (weight == null || weight < 0) {
+                                    return '请输入有效的体重';
+                                  }
+                                }
+                                return null;
+                              },
+                            ),
+                          
                     ],
                   ),
                 ),
@@ -350,7 +353,7 @@ class _AddRecordPageState extends State<AddRecordPage> {
                         children: [
                           Icon(
                             Icons.photo,
-                            color: Theme.of(context).colorScheme.secondary,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           const Text(
@@ -402,7 +405,7 @@ class _AddRecordPageState extends State<AddRecordPage> {
                           child: Center(
                             child: Text(
                               '未选择照片',
-                              style: TextStyle(color: Theme.of(context).colorScheme.secondary),
+                              style: TextStyle(color: Theme.of(context).colorScheme.primary),
                             ),
                           ),
                         ),
@@ -573,7 +576,11 @@ class _AddRecordPageState extends State<AddRecordPage> {
     final hasWidth = _widthController.text.trim().isNotEmpty;
     if (!hasWeight && !(hasLength && hasWidth)) {
       ShadToaster.of(context).show(
-        const ShadToast(description: Text('请填写体重，或同时填写体长和体宽')),
+        ShadToast(
+          backgroundColor: Theme.of(context).colorScheme.onPrimary,
+          alignment: Alignment.topCenter,
+          description: Text('请填写体重，或同时填写体长和体宽'),
+        ),
       );
       return;
     }
@@ -611,7 +618,11 @@ class _AddRecordPageState extends State<AddRecordPage> {
       Navigator.pop(context);
     } catch (e) {
       ShadToaster.of(context).show(
-        ShadToast(description: Text('保存失败: $e')),
+        ShadToast(
+      backgroundColor: Theme.of(context).colorScheme.onPrimary,
+          alignment: Alignment.topCenter,
+          description: Text('保存失败: $e'),
+        ),
       );
     } finally {
       setState(() {

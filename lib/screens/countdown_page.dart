@@ -75,7 +75,11 @@ class _CountdownPageState extends State<CountdownPage> {
     });
     ShadToaster.of(
       context,
-    ).show(ShadToast(description: Text('已删除项目: ${item.name}')));
+    ).show(ShadToast(
+      backgroundColor: Theme.of(context).colorScheme.onPrimary,
+      alignment: Alignment.topCenter,
+      description: Text('已删除项目: ${item.name}'),
+    ));
   }
 
   void _showEditDialog({CountdownItem? item}) {
@@ -173,7 +177,11 @@ class _CountdownPageState extends State<CountdownPage> {
     if (!_mqttService.isConnected) {
       ShadToaster.of(
         context,
-      ).show(ShadToast(description: const Text('MQTT 未连接!')));
+      ).show(ShadToast(
+        backgroundColor: Theme.of(context).colorScheme.onPrimary,
+        alignment: Alignment.topCenter,
+        description: const Text('MQTT 未连接!'),
+      ));
       return;
     }
 
@@ -211,7 +219,11 @@ class _CountdownPageState extends State<CountdownPage> {
     await dbHelper.setLastSentAt(_lastSentAt!);
     await dbHelper.setLastSentSummary(_lastSentSummary!);
 
-    ShadToaster.of(context).show(ShadToast(description: const Text('数据发送成功')));
+    ShadToaster.of(context).show(ShadToast(
+      backgroundColor: Theme.of(context).colorScheme.onPrimary,
+      alignment: Alignment.topCenter,
+      description: const Text('数据发送成功'),
+    ));
   }
 
   String _buildPayloadSummary(Map<String, dynamic> map) {
@@ -275,7 +287,11 @@ class _CountdownPageState extends State<CountdownPage> {
       } else {
         ShadToaster.of(
           context,
-        ).show(ShadToast(description: const Text('该时间已存在!')));
+        ).show(ShadToast(
+          backgroundColor: Theme.of(context).colorScheme.onPrimary,
+          alignment: Alignment.topCenter,
+          description: const Text('该时间已存在!'),
+        ));
       }
     }
   }
