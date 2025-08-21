@@ -20,6 +20,8 @@ class _CountdownPageState extends State<CountdownPage> {
   bool _isTimingEnabled = false;
   bool _isLoading = true;
   final MqttService _mqttService = MqttService();
+  String? _lastSentSummary;
+  DateTime? _lastSentAt;
 
   @override
   void initState() {
@@ -27,16 +29,33 @@ class _CountdownPageState extends State<CountdownPage> {
     _loadData();
   }
 
+  Widget _buildLastSentCard(ShadThemeData theme) {
+    return ShadCard(
+      title: Text('当前计划', style: theme.textTheme.h4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Text(_lastSentSummary ?? '尚无计划', style: theme.textTheme.muted),
+        ),
+      ),
+    );
+  }
+
   Future<void> _loadData() async {
     final items = await dbHelper.getCountdownItems();
     final times = await dbHelper.getTimedSchedules();
     final isEnabled = await dbHelper.getIsTimingEnabled();
+    final lastSummary = await dbHelper.getLastSentSummary();
+    final lastAt = await dbHelper.getLastSentAt();
     if (mounted) {
       setState(() {
         _items = items;
         _timeList = times;
         _isTimingEnabled = isEnabled;
         _isLoading = false;
+        _lastSentSummary = lastSummary;
+        _lastSentAt = lastAt;
       });
     }
   }
@@ -73,7 +92,12 @@ class _CountdownPageState extends State<CountdownPage> {
       context: context,
       builder: (context) {
         return ShadDialog(
-          title: Text(isEditing ? '修改项目' : '新增项目'),
+          title: Text(isEditing ? '修改引脚' : '新增引脚'),
+          constraints: BoxConstraints(
+            // Keep dialog within 90% of screen width so it doesn't take the full width
+            maxWidth: MediaQuery.sizeOf(context).width * 0.8,
+          ),
+          removeBorderRadiusWhenTiny: false,
           child: ShadForm(
             key: _formKey,
             child: Column(
@@ -145,7 +169,7 @@ class _CountdownPageState extends State<CountdownPage> {
     );
   }
 
-  void _sendData() {
+  Future<void> _sendData() async {
     if (!_mqttService.isConnected) {
       ShadToaster.of(
         context,
@@ -177,7 +201,37 @@ class _CountdownPageState extends State<CountdownPage> {
       builder.payload!,
     );
 
+    // Save last sent summary
+    setState(() {
+      _lastSentAt = DateTime.now();
+      _lastSentSummary = _buildPayloadSummary(payloadMap);
+    });
+
+    // Persist to DB
+    await dbHelper.setLastSentAt(_lastSentAt!);
+    await dbHelper.setLastSentSummary(_lastSentSummary!);
+
     ShadToaster.of(context).show(ShadToast(description: const Text('数据发送成功')));
+  }
+
+  String _buildPayloadSummary(Map<String, dynamic> map) {
+    final entries =
+        map.entries
+            .where((e) => e.key != 'd_t')
+            .map((e) => '${e.key}:${e.value}')
+            .toList()
+          ..sort();
+    final preview = entries.take(3).join(', ');
+    final more = entries.length > 3 ? ' 等${entries.length}项' : '';
+    final times = map['d_t'];
+    final timePart = times is List && times.isNotEmpty
+        ? '\n定时${times.length}个: ${times.take(4).join(', ')}${times.length > 4 ? '…' : ''}'
+        : '';
+    final ts = _lastSentAt;
+    final tsStr = ts == null
+        ? ''
+        : '  (${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}:${ts.second.toString().padLeft(2, '0')})';
+    return '引脚: $preview$more$timePart$tsStr';
   }
 
   void _addTime() async {
@@ -242,6 +296,8 @@ class _CountdownPageState extends State<CountdownPage> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+              _buildLastSentCard(theme),
+              const SizedBox(height: 16),
               _buildCountdownCard(theme),
               const SizedBox(height: 16),
               _buildTimedFeedingCard(theme),

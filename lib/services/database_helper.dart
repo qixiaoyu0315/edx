@@ -144,11 +144,55 @@ class DatabaseHelper {
 
   Future<void> setIsTimingEnabled(bool isEnabled) async {
     final db = await database;
-    await db.update(
+    // Use insert with replace to handle first-time write when key does not exist
+    await db.insert(
       'settings',
-      {'value': isEnabled.toString()},
+      {'key': 'isTimingEnabled', 'value': isEnabled.toString()},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Last sent summary methods
+  Future<String?> getLastSentSummary() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'settings',
       where: 'key = ?',
-      whereArgs: ['isTimingEnabled'],
+      whereArgs: ['lastSentSummary'],
+    );
+    if (maps.isNotEmpty) return maps.first['value'] as String;
+    return null;
+  }
+
+  Future<void> setLastSentSummary(String summary) async {
+    final db = await database;
+    await db.insert(
+      'settings',
+      {'key': 'lastSentSummary', 'value': summary},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<DateTime?> getLastSentAt() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: ['lastSentAt'],
+    );
+    if (maps.isNotEmpty) {
+      final v = maps.first['value'] as String;
+      return DateTime.tryParse(v);
+    }
+    return null;
+  }
+
+  Future<void> setLastSentAt(DateTime dt) async {
+    final db = await database;
+    await db.insert(
+      'settings',
+      {'key': 'lastSentAt', 'value': dt.toIso8601String()},
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 }
