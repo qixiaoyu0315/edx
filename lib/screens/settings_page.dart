@@ -6,6 +6,7 @@ import '../services/mqtt_service.dart';
 import '../services/mqtt_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
+import '../services/full_backup_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -170,6 +171,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 _buildThemeColorSelectCard(theme),
                 const SizedBox(height: 16),
                 _buildDisplaySettingsCard(theme),
+                const SizedBox(height: 16),
+                _buildBackupCard(theme),
               ],
             ),
           ),
@@ -420,6 +423,60 @@ class _SettingsPageState extends State<SettingsPage> {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString('theme_scheme', value);
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackupCard(ShadThemeData theme) {
+    return ShadCard(
+      title: Text('数据备份', style: theme.textTheme.h4),
+      description: const Text('打包导出所有SQLite数据（成长数据、倒计时、MQTT配置）及关联图片为ZIP。'),
+      child: Row(
+        children: [
+          ShadButton(
+            onPressed: () async {
+              try {
+                final saved = await FullBackupService.exportAllToZipWithPicker();
+                if (!mounted) return;
+                ShadToaster.of(context).show(ShadToast(
+                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
+                  alignment: Alignment.topCenter,
+                  description: Text('备份已保存: $saved'),
+                ));
+              } catch (e) {
+                if (!mounted) return;
+                ShadToaster.of(context).show(ShadToast(
+                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
+                  alignment: Alignment.topCenter,
+                  description: Text('备份失败: $e'),
+                ));
+              }
+            },
+            child: const Text('完整备份 (ZIP)'),
+          ),
+          const SizedBox(width: 12),
+          ShadButton.outline(
+            onPressed: () async {
+              try {
+                final saved = await FullBackupService.exportAllToZipToDownloads();
+                if (!mounted) return;
+                ShadToaster.of(context).show(ShadToast(
+                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
+                  alignment: Alignment.topCenter,
+                  description: Text('已保存到下载目录: $saved'),
+                ));
+              } catch (e) {
+                if (!mounted) return;
+                ShadToaster.of(context).show(ShadToast(
+                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
+                  alignment: Alignment.topCenter,
+                  description: Text('保存失败: $e'),
+                ));
+              }
+            },
+            child: const Text('保存到下载目录'),
           ),
         ],
       ),
