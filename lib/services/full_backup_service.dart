@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:archive/archive_io.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -54,6 +56,193 @@ class FullBackupService {
       throw Exception('无法写入下载目录');
     }
     return targetPath;
+  }
+
+  // 通过系统文件选择器选择ZIP并执行恢复
+  // 返回摘要字符串，包含成功/跳过项统计；返回 null 表示用户取消
+  static Future<String?> restoreAllFromZipWithPicker() async {
+    final pick = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['zip'],
+    );
+    if (pick == null || pick.files.isEmpty) return null; // 用户取消
+    final path = pick.files.single.path;
+    if (path == null) return null;
+    return await restoreAllFromZip(File(path));
+  }
+
+  // 从给定ZIP文件恢复
+  static Future<String> restoreAllFromZip(File zipFile) async {
+    final tempDir = await getTemporaryDirectory();
+    final workRoot = Directory(p.join(tempDir.path, 'restore_${DateTime.now().millisecondsSinceEpoch}'));
+    if (await workRoot.exists()) await workRoot.delete(recursive: true);
+    await workRoot.create(recursive: true);
+
+    // 解压（放到后台 isolate 防止阻塞 UI）
+    print('[Restore] Unzip start: ${zipFile.path}');
+    await _unzipToDir(zipFile, workRoot.path);
+    print('[Restore] Unzip done to: ${workRoot.path}');
+
+    // 定位备份根目录（兼容 zip 中多包一层 backup_* 目录的情况）
+    final baseDir = await _findBackupBaseDir(workRoot);
+    print('[Restore] Base dir resolved: ${baseDir.path}');
+
+    // 读取元数据
+    final metaFile = File(p.join(baseDir.path, 'metadata.json'));
+    if (!await metaFile.exists()) {
+      // 列出一层目录帮助诊断
+      try {
+        final children = baseDir.listSync().map((e) => e.path.split('/').last).join(', ');
+        print('[Restore][Warn] metadata.json not found in ${baseDir.path}. children: $children');
+      } catch (_) {}
+      await _cleanupDir(workRoot);
+      throw Exception('备份ZIP缺少 metadata.json');
+    }
+    final meta = jsonDecode(await metaFile.readAsString()) as Map<String, dynamic>;
+    if (meta['format'] != 'guigui_full_backup') {
+      await _cleanupDir(workRoot);
+      throw Exception('备份格式不匹配');
+    }
+
+    // 关闭数据库，准备覆盖
+    await TurtleDatabaseHelper.instance.close();
+
+    // 恢复数据库文件
+    final dbPath = await getDatabasesPath();
+    int dbRestored = 0;
+    for (final rel in (meta['databases'] as List<dynamic>? ?? [])) {
+      final src = File(p.join(baseDir.path, rel as String));
+      if (await src.exists()) {
+        final dest = File(p.join(dbPath, p.basename(rel)));
+        await dest.parent.create(recursive: true);
+        // 清理旧 DB 及伴随的 -wal/-shm，避免锁或不一致
+        try { if (await dest.exists()) await dest.delete(); } catch (_) {}
+        try { final wal = File('${dest.path}-wal'); if (await wal.exists()) await wal.delete(); } catch (_) {}
+        try { final shm = File('${dest.path}-shm'); if (await shm.exists()) await shm.delete(); } catch (_) {}
+        await src.copy(dest.path);
+        dbRestored++;
+      }
+    }
+
+    // 恢复图片到应用文档目录 images_restored 下
+    final docs = await getApplicationDocumentsDirectory();
+    final restoreImagesDir = Directory(p.join(docs.path, 'images_restored'));
+    await restoreImagesDir.create(recursive: true);
+    int imgRestored = 0;
+    final imageMappings = <String, String>{}; // original -> newAbsolute
+    for (final item in (meta['images'] as List<dynamic>? ?? [])) {
+      final map = (item as Map).cast<String, dynamic>();
+      final original = map['original'] as String?;
+      final saved = map['saved'] as String?; // e.g. images/xxx.jpg
+      if (saved == null) continue;
+      final src = File(p.join(baseDir.path, saved));
+      if (!await src.exists()) continue;
+      final destName = _uniqueName(restoreImagesDir.path, p.basename(saved));
+      final dest = File(p.join(restoreImagesDir.path, destName));
+      await src.copy(dest.path);
+      imgRestored++;
+      if (original != null && original.isNotEmpty) {
+        imageMappings[original] = dest.path;
+      }
+    }
+
+    // 重写数据库中的图片路径（仅 guigui.db）
+    final db = await TurtleDatabaseHelper.instance.database;
+    final batch = db.batch();
+    for (final entry in imageMappings.entries) {
+      batch.update(
+        TurtleDatabaseHelper.tableTurtles,
+        {'photoPath': entry.value},
+        where: 'photoPath = ?',
+        whereArgs: [entry.key],
+      );
+      batch.update(
+        TurtleDatabaseHelper.tableRecords,
+        {'photoPath': entry.value},
+        where: 'photoPath = ?',
+        whereArgs: [entry.key],
+      );
+    }
+    await batch.commit(noResult: true);
+
+    // 恢复偏好（仅已知键）
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final prefsData = (meta['prefs'] as Map?)?.cast<String, dynamic>() ?? {};
+      if (prefsData.containsKey('fullscreen')) {
+        await prefs.setBool('fullscreen', prefsData['fullscreen'] == true);
+      }
+      if (prefsData['theme_scheme'] is String) {
+        await prefs.setString('theme_scheme', prefsData['theme_scheme'] as String);
+      }
+    } catch (_) {}
+
+    await _cleanupDir(workRoot);
+
+    return '数据库恢复: $dbRestored 个，图片恢复: $imgRestored 张';
+  }
+
+  // 在后台 isolate 解压，避免阻塞 UI
+  static Future<void> _unzipToDir(File zip, String outDir) async {
+    await Isolate.run(() {
+      final bytes = zip.readAsBytesSync();
+      final archive = ZipDecoder().decodeBytes(bytes);
+      int files = 0, dirs = 0, logged = 0;
+      for (final entry in archive) {
+        String normalized = p.normalize(entry.name.replaceAll('\\', '/'));
+        // 强制为相对路径，去掉前导 '/'
+        while (p.isAbsolute(normalized)) {
+          if (normalized.length <= 1) break;
+          normalized = normalized.substring(1);
+        }
+        final outPath = p.join(outDir, normalized);
+        // 防目录穿越
+        final safePath = p.normalize(outPath);
+        if (!safePath.startsWith(p.normalize(outDir))) {
+          continue;
+        }
+        if (logged < 5) {
+          // ignore: avoid_print
+          print('[Restore] Entry: ${entry.isFile ? 'F' : 'D'} $normalized');
+          logged++;
+        }
+        if (entry.isFile) {
+          final outFile = File(safePath);
+          outFile.parent.createSync(recursive: true);
+          outFile.writeAsBytesSync(entry.content as List<int>);
+          files++;
+        } else {
+          Directory(safePath).createSync(recursive: true);
+          dirs++;
+        }
+      }
+      // 记录统计
+      // ignore: avoid_print
+      print('[Restore] Extracted entries -> files:$files dirs:$dirs');
+    });
+  }
+
+  // 在解压目录中查找 metadata.json 所在的基准目录
+  static Future<Directory> _findBackupBaseDir(Directory root) async {
+    final metaAtRoot = File(p.join(root.path, 'metadata.json'));
+    if (await metaAtRoot.exists()) return root;
+
+    Directory? found;
+    Future<void> dfs(Directory dir, int depth) async {
+      if (depth > 5 || found != null) return;
+      final entries = dir.listSync();
+      for (final e in entries) {
+        if (found != null) return;
+        if (e is Directory) {
+          final f = File(p.join(e.path, 'metadata.json'));
+          if (await f.exists()) { found = e; return; }
+          await dfs(e, depth + 1);
+        }
+      }
+    }
+
+    await dfs(root, 0);
+    return found ?? root;
   }
 
   // 内部：构建工作目录 -> 打包到临时ZIP，返回路径
@@ -159,6 +348,10 @@ class FullBackupService {
       i++;
     }
     return name;
+  }
+
+  static Future<void> _cleanupDir(Directory dir) async {
+    try { await dir.delete(recursive: true); } catch (_) {}
   }
 }
 

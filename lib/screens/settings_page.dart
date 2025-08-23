@@ -454,7 +454,52 @@ class _SettingsPageState extends State<SettingsPage> {
                 ));
               }
             },
-            child: const Text('保存到下载目录'),
+            child: const Text('备份到ZIP'),
+          ),
+          const SizedBox(width: 12),
+          ShadButton.destructive(
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('从ZIP恢复数据'),
+                  content: const Text(
+                    '此操作将覆盖当前数据库并尝试恢复图片和部分设置，存在数据丢失风险。\n\n'
+                    '建议先执行一次备份再继续。是否继续？',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('取消'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('继续'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm != true) return;
+
+              try {
+                final summary = await FullBackupService.restoreAllFromZipWithPicker();
+                if (!mounted) return;
+                if (summary == null) return; // 用户取消
+                ShadToaster.of(context).show(ShadToast(
+                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
+                  alignment: Alignment.topCenter,
+                  description: Text('恢复完成: $summary'),
+                ));
+              } catch (e) {
+                if (!mounted) return;
+                ShadToaster.of(context).show(ShadToast(
+                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
+                  alignment: Alignment.topCenter,
+                  description: Text('恢复失败: $e'),
+                ));
+              }
+            },
+            child: const Text('从ZIP恢复'),
           ),
         ],
       ),

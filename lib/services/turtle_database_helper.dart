@@ -26,6 +26,15 @@ class TurtleDatabaseHelper {
     return _db!;
   }
 
+  /// Close the opened database connection, allowing external operations
+  /// like replacing the underlying DB file during a full restore.
+  Future<void> close() async {
+    if (_db != null) {
+      await _db!.close();
+      _db = null;
+    }
+  }
+
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     final path = p.join(dbPath, _dbName);
