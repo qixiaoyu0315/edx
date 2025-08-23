@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
-import 'package:file_saver/file_saver.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -12,21 +11,8 @@ import 'package:sqflite/sqflite.dart';
 import 'turtle_database_helper.dart';
 
 class FullBackupService {
-  // 备份为ZIP并通过系统保存对话框导出，返回保存后的路径
-  static Future<String> exportAllToZipWithPicker() async {
-    final result = await _createZipToTemp();
-    final bytes = await File(result.zipPath).readAsBytes();
-    final saved = await FileSaver.instance.saveFile(
-      name: p.basename(result.zipPath),
-      bytes: bytes,
-      mimeType: MimeType.other,
-    );
-    // 清理
-    try { await Directory(result.workRoot).delete(recursive: true); } catch (_) {}
-    try { await File(result.zipPath).delete(); } catch (_) {}
-    return saved;
-  }
-
+  // 直接保存到公共下载目录（Android 优先），失败则抛出异常
+  
   // 直接保存到公共下载目录（Android 优先），失败则回退到系统对话框
   static Future<String> exportAllToZipToDownloads() async {
     final result = await _createZipToTemp();
@@ -61,19 +47,12 @@ class FullBackupService {
       }
     }
 
-    if (targetPath == null) {
-      // 回退到系统保存对话框
-      final bytes = await File(result.zipPath).readAsBytes();
-      targetPath = await FileSaver.instance.saveFile(
-        name: p.basename(result.zipPath),
-        bytes: bytes,
-        mimeType: MimeType.other,
-      );
-    }
-
     // 清理
     try { await Directory(result.workRoot).delete(recursive: true); } catch (_) {}
     try { await File(result.zipPath).delete(); } catch (_) {}
+    if (targetPath == null) {
+      throw Exception('无法写入下载目录');
+    }
     return targetPath;
   }
 

@@ -431,33 +431,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildBackupCard(ShadThemeData theme) {
     return ShadCard(
-      title: Text('数据备份', style: theme.textTheme.h4),
-      description: const Text('打包导出所有SQLite数据（成长数据、倒计时、MQTT配置）及关联图片为ZIP。'),
+      title: Text('数据备份与恢复', style: theme.textTheme.h4),
+      description: const Text('导出所有数据（成长数据、倒计时、MQTT配置）'),
       child: Row(
         children: [
           ShadButton(
-            onPressed: () async {
-              try {
-                final saved = await FullBackupService.exportAllToZipWithPicker();
-                if (!mounted) return;
-                ShadToaster.of(context).show(ShadToast(
-                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
-                  alignment: Alignment.topCenter,
-                  description: Text('备份已保存: $saved'),
-                ));
-              } catch (e) {
-                if (!mounted) return;
-                ShadToaster.of(context).show(ShadToast(
-                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
-                  alignment: Alignment.topCenter,
-                  description: Text('备份失败: $e'),
-                ));
-              }
-            },
-            child: const Text('完整备份 (ZIP)'),
-          ),
-          const SizedBox(width: 12),
-          ShadButton.outline(
             onPressed: () async {
               try {
                 final saved = await FullBackupService.exportAllToZipToDownloads();
