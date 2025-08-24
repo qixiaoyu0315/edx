@@ -4,7 +4,7 @@ import '../models/turtle_record.dart';
 import '../models/turtle.dart';
 import '../models/sort_option.dart';
 import '../utils/record_sorter.dart';
-import '../screens/record_detail_page.dart';
+import '../screens/add_record_page.dart';
 
 class TurtleTree extends StatelessWidget {
   final List<TurtleRecord> records;
@@ -185,9 +185,10 @@ class TurtleTree extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => RecordDetailPage(
-                        record: record,
-                        onRefresh: onRefresh,
+                      builder: (context) => AddRecordPage(
+                        recordToEdit: record,
+                        turtles: turtles,
+                        onSaved: onRefresh,
                       ),
                     ),
                   );
