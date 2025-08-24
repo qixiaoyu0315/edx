@@ -14,11 +14,11 @@ class AddRecordPage extends StatefulWidget {
   final VoidCallback onSaved;
 
   const AddRecordPage({
-    Key? key,
+    super.key,
     this.recordToEdit,
     required this.turtles,
     required this.onSaved,
-  }) : super(key: key);
+  });
 
   @override
   State<AddRecordPage> createState() => _AddRecordPageState();
@@ -155,7 +155,7 @@ class _AddRecordPageState extends State<AddRecordPage> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _selectedTurtleId,
+                        initialValue: _selectedTurtleId,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),

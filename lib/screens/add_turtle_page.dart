@@ -11,10 +11,10 @@ class AddTurtlePage extends StatefulWidget {
   final VoidCallback onSaved;
 
   const AddTurtlePage({
-    Key? key,
+    super.key,
     this.turtleToEdit,
     required this.onSaved,
-  }) : super(key: key);
+  });
 
   @override
   State<AddTurtlePage> createState() => _AddTurtlePageState();
@@ -417,7 +417,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                                     : null,
                               ),
                             );
-                          }).toList(),
+                          }),
                           // 自定义颜色选择器按钮
                           GestureDetector(
                             onTap: _showColorPicker,
@@ -425,7 +425,7 @@ class _AddTurtlePageState extends State<AddTurtlePage> {
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surfaceVariant,
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: Theme.of(context).dividerColor,

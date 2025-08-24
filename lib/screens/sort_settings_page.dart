@@ -6,10 +6,10 @@ class SortSettingsPage extends StatefulWidget {
   final Function(SortConfig) onConfigChanged;
 
   const SortSettingsPage({
-    Key? key,
+    super.key,
     required this.currentConfig,
     required this.onConfigChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<SortSettingsPage> createState() => _SortSettingsPageState();
@@ -126,7 +126,7 @@ class _SortSettingsPageState extends State<SortSettingsPage> {
                           contentPadding: EdgeInsets.zero,
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
@@ -192,7 +192,7 @@ class _SortSettingsPageState extends State<SortSettingsPage> {
                           contentPadding: EdgeInsets.zero,
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),

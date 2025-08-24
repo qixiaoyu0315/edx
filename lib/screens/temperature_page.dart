@@ -6,7 +6,6 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 import '../models/temperature_data.dart';
 import '../services/mqtt_service.dart';
 import '../services/mqtt_storage.dart';
-import '../widgets/triangle_painter.dart';
 
 class TemperaturePage extends StatefulWidget {
   const TemperaturePage({super.key});

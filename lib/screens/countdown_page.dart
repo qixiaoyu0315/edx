@@ -90,7 +90,7 @@ class _CountdownPageState extends State<CountdownPage> {
     final durationController = TextEditingController(
       text: isEditing ? item.milliseconds.toString() : '',
     );
-    final _formKey = GlobalKey<ShadFormState>();
+    final formKey = GlobalKey<ShadFormState>();
 
     showShadDialog(
       context: context,
@@ -103,7 +103,7 @@ class _CountdownPageState extends State<CountdownPage> {
           ),
           removeBorderRadiusWhenTiny: false,
           child: ShadForm(
-            key: _formKey,
+            key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -111,11 +111,11 @@ class _CountdownPageState extends State<CountdownPage> {
                   controller: nameController,
                   label: const Text('名称 (例如: q1)'),
                   validator: (value) {
-                    if (value?.isEmpty ?? true) {
+                    if (value.isEmpty ?? true) {
                       return '名称不能为空';
                     }
                     final regex = RegExp(r'^q\d+$');
-                    if (!regex.hasMatch(value!)) {
+                    if (!regex.hasMatch(value)) {
                       return '格式必须是 "q" 后跟数字';
                     }
                     return null;
@@ -127,10 +127,10 @@ class _CountdownPageState extends State<CountdownPage> {
                   label: const Text('倒计时 (毫秒)'),
                   keyboardType: TextInputType.number,
                   validator: (value) {
-                    if (value?.isEmpty ?? true) {
+                    if (value.isEmpty ?? true) {
                       return '毫秒数不能为空';
                     }
-                    if (int.tryParse(value!) == null) {
+                    if (int.tryParse(value) == null) {
                       return '请输入有效的数字';
                     }
                     return null;
@@ -146,10 +146,10 @@ class _CountdownPageState extends State<CountdownPage> {
             ),
             ShadButton(
               onPressed: () {
-                if (_formKey.currentState!.saveAndValidate()) {
+                if (formKey.currentState!.saveAndValidate()) {
                   setState(() {
                     if (isEditing) {
-                      item!.name = nameController.text;
+                      item.name = nameController.text;
                       item.milliseconds = int.parse(durationController.text);
                       dbHelper.updateCountdownItem(item);
                     } else {
@@ -319,10 +319,10 @@ class _CountdownPageState extends State<CountdownPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _sendData,
-        child: const Icon(Icons.send),
         backgroundColor: _mqttService.isConnected
             ? theme.colorScheme.primary
             : theme.colorScheme.destructive,
+        child: const Icon(Icons.send),
       ),
     );
   }
@@ -350,7 +350,7 @@ class _CountdownPageState extends State<CountdownPage> {
                 return ListTile(
                   title: Row(
                     children: [
-                      Text(item.name + '/' + '${item.milliseconds} ms'),
+                      Text('${item.name}/${item.milliseconds} ms'),
                     ],
                   ),
                   trailing: Row(

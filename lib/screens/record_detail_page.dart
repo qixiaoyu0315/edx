@@ -9,10 +9,10 @@ class RecordDetailPage extends StatelessWidget {
   final VoidCallback onRefresh;
 
   const RecordDetailPage({
-    Key? key,
+    super.key,
     required this.record,
     required this.onRefresh,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

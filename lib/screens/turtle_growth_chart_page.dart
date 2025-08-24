@@ -8,9 +8,9 @@ class TurtleGrowthChartPage extends StatefulWidget {
   final Turtle turtle;
 
   const TurtleGrowthChartPage({
-    Key? key,
+    super.key,
     required this.turtle,
-  }) : super(key: key);
+  });
 
   @override
   State<TurtleGrowthChartPage> createState() => _TurtleGrowthChartPageState();

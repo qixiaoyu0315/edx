@@ -14,13 +14,13 @@ class TurtleTree extends StatelessWidget {
   final VoidCallback onRefresh;
 
   const TurtleTree({
-    Key? key,
+    super.key,
     required this.records,
     required this.turtles,
     required this.selectedTurtleIds,
     required this.sortConfig,
     required this.onRefresh,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

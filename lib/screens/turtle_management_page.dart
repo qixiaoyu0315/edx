@@ -7,7 +7,7 @@ import 'turtle_growth_chart_page.dart';
 import '../services/backup_import_service.dart';
 
 class TurtleManagementPage extends StatefulWidget {
-  const TurtleManagementPage({Key? key}) : super(key: key);
+  const TurtleManagementPage({super.key});
 
   @override
   State<TurtleManagementPage> createState() => _TurtleManagementPageState();
